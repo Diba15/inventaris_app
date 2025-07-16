@@ -1,5 +1,5 @@
 <script setup>
-const STRAPI_URL = import.meta.VITE_STRAPI_URL
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
 import { defineOptions } from 'vue'
 defineOptions({

@@ -61,7 +61,9 @@ function handlePriceInput(event) {
 }
 
 const postProduct = async () => {
-  const category_id = categories.value.find((cat) => cat.category === selectedCategory.value)?.documentId
+  const category_id = categories.value.find(
+    (cat) => cat.category === selectedCategory.value,
+  )?.id
 
   const data = {
     product_category: category_id,
@@ -80,7 +82,7 @@ const postProduct = async () => {
   }
 
   await axios.post(`${STRAPI_URL}/api/products`, {
-    data: { data },
+    data
   })
 
   selectedCategory.value = ''
