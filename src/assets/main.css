@@ -1,0 +1,15 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-base: #272838;
+  --color-secondary: #ECF8FD;
+  --color-sub: #F2B418;
+
+  --font-main: 'Helvetica', 'sans-serif';
+}
+
+html {
+  background-color: var(--color-secondary);
+  color: var(--color-secondary);
+  font-family: var(--font-main);
+}
