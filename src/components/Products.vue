@@ -1,11 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue'
+import AlertComponent from './AlertComponent.vue'
 
 defineOptions({
   name: 'products_component',
 })
 
 const emit = defineEmits(['deleteProduct'])
+const show = ref(false)
+const message = ref('')
+const modalType = ref('delete')
 
 const props = defineProps({
   products: {
@@ -45,6 +49,16 @@ const sortedProducts = computed(() => {
 
 function deleteProduct(id) {
   emit('deleteProduct', id)
+}
+
+function openDeleteModal() {
+  show.value = true
+
+  modalType.value = 'delete'
+
+  message.value = 'Are you sure you want to delete this product?'
+
+  show.value = false
 }
 </script>
 
@@ -151,10 +165,17 @@ function deleteProduct(id) {
               </RouterLink>
               <button
                 class="text-red-500 hover:text-red-700 text-xl"
-                @click="deleteProduct(product.documentId)"
+                @click="openDeleteModal"
               >
                 <i class="fa-solid fa-trash-can"></i>
               </button>
+              <alert-component
+                :message="message"
+                :show="show"
+                @close="show = false"
+                @confirm="deleteProduct(product.documentId)"
+                :type="modalType"
+              />
             </td>
           </tr>
           <tr v-if="products.length === 0">
@@ -163,10 +184,7 @@ function deleteProduct(id) {
         </tbody>
       </table>
     </div>
-    <div
-      id="pagination"
-      class="flex justify-between text-base px-4 mt-2 text-sm items-center"
-    >
+    <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
       <div>1 - 5 of 100</div>
       <div class="flex gap-2 items-center">
         <div class="p-1 cursor-pointer"><i class="fa fa-angle-left"></i></div>

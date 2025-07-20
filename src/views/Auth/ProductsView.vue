@@ -1,5 +1,6 @@
 <script setup>
 import products_component from '@/components/Products.vue'
+import AlertComponent from '@/components/AlertComponent.vue'
 
 import { onMounted, ref, watchEffect } from 'vue'
 import axios from 'axios'
@@ -10,9 +11,9 @@ console.log(STRAPI_URL)
 
 const categories = ref([]) // Reactive variable to hold categories
 const products = ref([]) // Reactive variable to hold products
-const showAlert = ref(false)
-const alertMessage = ref('unknown')
-const alertType = ref('success')
+const message = ref('Ini Message')
+const show = ref(false)
+const modalType = ref('warning')
 
 const getCategories = async () => {
   const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
@@ -63,7 +64,7 @@ function handlePriceInput(event) {
 const postProduct = async () => {
   const category_id = categories.value.find(
     (cat) => cat.category === selectedCategory.value,
-  )?.id
+  )?.documentId
 
   const data = {
     product_category: category_id,
@@ -74,15 +75,22 @@ const postProduct = async () => {
     product_qty: quantityProduct.value,
   }
 
-  if (data === null) {
-    alertMessage.value = 'Gagal menambahkan produk. Silakan coba lagi.'
-    alertType.value = 'error'
-    showAlert.value = true
+  if (
+    !data.product_category ||
+    !data.product_code ||
+    !data.product_name ||
+    !data.product_description ||
+    !data.product_price ||
+    !data.product_qty
+  ) {
+    modalType.value = 'warning'
+    message.value = 'Please fill in all fields'
+    show.value = true
     return
   }
 
   await axios.post(`${STRAPI_URL}/api/products`, {
-    data
+    data,
   })
 
   selectedCategory.value = ''
@@ -195,6 +203,12 @@ onMounted(() => {
         </div>
       </div>
       <products_component @deleteProduct="deleteProduct" :products="products" />
+      <alert-component
+        :message="message"
+        :show="show"
+        @close="show = false"
+        :type="modalType"
+      />
     </div>
   </div>
 </template>

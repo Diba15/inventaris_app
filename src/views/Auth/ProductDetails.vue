@@ -62,7 +62,7 @@ const updateProduct = async () => {
     product_price: product.value.product_price,
     product_qty: product.value.product_qty,
   }
-  await axios.put(`${STRAPI_URL}/api/products/${id}`, { data: updatedData })
+  await axios.put(`${STRAPI_URL}/api/products/${id}`, { updatedData })
   alert('Product updated successfully!')
   getProductDetails() // Refresh the product details after update
   const inputs = document.querySelectorAll('input')
@@ -76,6 +76,8 @@ const updateProduct = async () => {
   textarea.classList.remove('bg-white')
   textarea.classList.add('bg-gray-100')
   inputs[0].focus() // Focus on the first input field after update
+
+  isEditing.value = false
 }
 </script>
 
@@ -84,7 +86,7 @@ const updateProduct = async () => {
     <h1 class="text-2xl font-bold">Product Details</h1>
 
     <div v-if="product" class="mt-4">
-      <form action="">
+      <form action="" @submit="updateProduct">
         <div class="flex flex-col gap-4">
           <div class="flex flex-col gap-2">
             <label for="product_name" class="font-semibold">Nama Produk</label>
