@@ -14,15 +14,25 @@ const products = ref([]) // Reactive variable to hold products
 const message = ref('Ini Message')
 const show = ref(false)
 const modalType = ref('warning')
+const startPage = ref(0)
+const limitPage = ref(5)
+const totalData = ref(0)
+const currentPage = ref(1)
 
 const getCategories = async () => {
   const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
   categories.value = response.data.data
 }
 
-const getProducts = async () => {
-  const response = await axios.get(`${STRAPI_URL}/api/products?populate=product_category`)
+const getProducts = async (start, limit) => {
+  const response = await axios.get(
+    `${STRAPI_URL}/api/products?populate=product_category&pagination[start]=${start}&pagination[limit]=${limit}&pagination[withCount]=true`,
+  )
   products.value = response.data.data
+  // Sort product by date created desc
+  products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  totalData.value = response.data.meta.pagination.total
 }
 
 const deleteProduct = async (id) => {
@@ -34,16 +44,30 @@ const deleteProduct = async (id) => {
   }
 }
 
-const countProductsByCategory = (categoryName) => {
+const getNextAvailableProductCode = (categoryName) => {
   const matchedCategory = categories.value.find((cat) => cat.category === categoryName)
-  if (!matchedCategory) return 0
+  if (!matchedCategory) return `${categoryName}_1`
 
-  const categoryId = matchedCategory.id
+  // Filter produk yang sesuai kategori
+  const filteredProducts = products.value.filter(
+    (product) => product.product_category.category === categoryName,
+  )
 
-  console.log(matchedCategory, categoryId, products.value)
+  // Ambil angka dari code produk (misal: Roti_3 -> 3)
+  const usedNumbers = filteredProducts
+    .map((product) => {
+      const match = product.product_code?.match(new RegExp(`${categoryName}_(\\d+)`))
+      return match ? parseInt(match[1]) : null
+    })
+    .filter((n) => n !== null)
 
-  return products.value.filter((product) => product.product_category.category === categoryName)
-    .length
+  // Cari angka terkecil yang belum digunakan
+  let i = 1
+  while (usedNumbers.includes(i)) {
+    i++
+  }
+
+  return `${categoryName}_${i}`
 }
 
 // Reactive Variable for input
@@ -105,16 +129,55 @@ const postProduct = async () => {
 
 onMounted(() => {
   getCategories() // Fetch categories when the component is mounted
-  getProducts() // Fetch products when the component is mounted
+  getProducts(startPage.value, limitPage.value) // Fetch products when the component is mounted
   watchEffect(() => {
     if (!selectedCategory.value || products.value.length === 0) {
       codeProduct.value = ''
       return
     }
-    const count = countProductsByCategory(selectedCategory.value)
-    codeProduct.value = `${selectedCategory.value}_${count + 1}`
+    codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
   })
 })
+
+function nextPage() {
+  startPage.value += limitPage.value
+  getProducts(startPage.value, limitPage.value)
+
+  if (startPage.value < 0) {
+    startPage.value = 0
+    getProducts(startPage.value, limitPage.value)
+  }
+
+  if (startPage.value === 0) {
+    currentPage.value = 1
+  } else {
+    currentPage.value = Math.ceil(startPage.value / limitPage.value) + 1
+  }
+}
+
+function prevPage() {
+  if (startPage.value > 0) {
+    startPage.value -= limitPage.value
+    getProducts(startPage.value, limitPage.value)
+  }
+
+  if (startPage.value < 0) {
+    startPage.value = 0
+    getProducts(startPage.value, limitPage.value)
+  }
+
+  if (startPage.value === 0) {
+    currentPage.value = 1
+  } else {
+    currentPage.value = Math.ceil(startPage.value / limitPage.value) + 1
+  }
+}
+
+function gotoPage(page) {
+  startPage.value = (page - 1) * limitPage.value
+  getProducts(startPage.value, limitPage.value)
+  currentPage.value = page
+}
 </script>
 
 <template>
@@ -202,13 +265,17 @@ onMounted(() => {
           </form>
         </div>
       </div>
-      <products_component @deleteProduct="deleteProduct" :products="products" />
-      <alert-component
-        :message="message"
-        :show="show"
-        @close="show = false"
-        :type="modalType"
+      <products_component
+        @deleteProduct="deleteProduct"
+        @nextPage="nextPage"
+        @prevPage="prevPage"
+        @goToPage="gotoPage"
+        :products="products"
+        :startPage="startPage"
+        :totalData="totalData"
+        :currentPage="currentPage"
       />
+      <alert-component :message="message" :show="show" @close="show = false" :type="modalType" />
     </div>
   </div>
 </template>

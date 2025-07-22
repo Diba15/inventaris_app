@@ -6,7 +6,7 @@ defineOptions({
   name: 'products_component',
 })
 
-const emit = defineEmits(['deleteProduct'])
+const emit = defineEmits(['deleteProduct', 'nextPage', 'prevPage', 'goToPage'])
 const show = ref(false)
 const message = ref('')
 const modalType = ref('delete')
@@ -15,6 +15,18 @@ const props = defineProps({
   products: {
     type: Array,
     default: () => [],
+  },
+  startPage: {
+    type: Number,
+    default: 0,
+  },
+  totalData: {
+    type: Number,
+    default: 5,
+  },
+  currentPage: {
+    type: Number,
+    default: 1,
   },
 })
 
@@ -51,6 +63,18 @@ function deleteProduct(id) {
   emit('deleteProduct', id)
 }
 
+function nextPage() {
+  emit('nextPage')
+}
+
+function prevPage() {
+  emit('prevPage')
+}
+
+function goToPage(page) {
+  emit('goToPage', page)
+}
+
 function openDeleteModal() {
   show.value = true
 
@@ -82,15 +106,6 @@ function openDeleteModal() {
       >
         <thead class="bg-base text-white">
           <tr>
-            <th
-              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-              @click="sortBy('product_category')"
-            >
-              Product Category
-              <span v-if="sortKey === 'product_category'">
-                <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-              </span>
-            </th>
             <th
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
               @click="sortBy('product_code')"
@@ -136,6 +151,15 @@ function openDeleteModal() {
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
             </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
+              @click="sortBy('createdAt')"
+            >
+              Created At
+              <span v-if="sortKey === 'createdAt'">
+                <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+              </span>
+            </th>
             <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Aksi</th>
           </tr>
         </thead>
@@ -148,12 +172,20 @@ function openDeleteModal() {
               index % 2 === 0 ? 'bg-white' : 'bg-gray-100',
             ]"
           >
-            <td class="px-6 py-4 whitespace-nowrap">{{ product.product_category.category }}</td>
             <td class="px-6 py-4 whitespace-nowrap">{{ product.product_code }}</td>
             <td class="px-6 py-4 whitespace-nowrap">{{ product.product_name }}</td>
             <td class="px-6 py-4 whitespace-nowrap">{{ product.product_description }}</td>
             <td class="px-6 py-4 whitespace-nowrap">Rp.{{ product.product_price }}</td>
             <td class="px-6 py-4 whitespace-nowrap">{{ product.product_qty }}</td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              {{
+                new Date(product.createdAt).toLocaleDateString('id-ID', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              }}
+            </td>
             <td class="px-6 py-4 whitespace-nowrap flex gap-2">
               <RouterLink
                 :to="{ name: 'edit-product', params: { id: product.documentId } }"
@@ -163,10 +195,7 @@ function openDeleteModal() {
                   <i class="fa-solid fa-eye"></i>
                 </button>
               </RouterLink>
-              <button
-                class="text-red-500 hover:text-red-700 text-xl"
-                @click="openDeleteModal"
-              >
+              <button class="text-red-500 hover:text-red-700 text-xl" @click="openDeleteModal">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
               <alert-component
@@ -185,11 +214,26 @@ function openDeleteModal() {
       </table>
     </div>
     <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
-      <div>1 - 5 of 100</div>
+      <div>{{ startPage + 1 }} - {{ startPage + products.length }} of {{ totalData }}</div>
       <div class="flex gap-2 items-center">
-        <div class="p-1 cursor-pointer"><i class="fa fa-angle-left"></i></div>
-        <div id="current-page" class="p-1 cursor-pointer">Page 1</div>
-        <div class="p-1 cursor-pointer"><i class="fa fa-angle-right"></i></div>
+        <div class="p-1 cursor-pointer" v-on:click="prevPage()">
+          <i class="fa fa-angle-left"></i>
+        </div>
+        <div id="current-page" class="p-1 cursor-pointer">
+          <span>
+            <input
+              type="text"
+              min="1"
+              max="100"
+              :value="currentPage"
+              @input="goToPage($event.target.value)"
+              class="px-2 py-1 max-w-[50px] text-center"
+            />
+          </span>
+        </div>
+        <div class="p-1 cursor-pointer" v-on:click="nextPage()">
+          <i class="fa fa-angle-right"></i>
+        </div>
       </div>
     </div>
   </div>
