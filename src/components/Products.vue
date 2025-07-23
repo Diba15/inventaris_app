@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import AlertComponent from './AlertComponent.vue'
 
 defineOptions({
   name: 'products_component',
