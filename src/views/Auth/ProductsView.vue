@@ -15,6 +15,22 @@ const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
 
+try {
+  const storedCategories = localStorage.getItem('categories')
+  if (storedCategories) {
+    categories.value = JSON.parse(storedCategories)
+  }
+
+  const storedProducts = localStorage.getItem('products')
+  if (storedProducts) {
+    products.value = JSON.parse(storedProducts)
+  }
+} catch (error) {
+  console.error('Error parsing data from localStorage:', error)
+  categories.value = []
+  products.value = []
+}
+
 // For Products Component modal
 const openDeleteModal = (id) => {
   message.value = `Are you sure you want to delete?`
@@ -30,6 +46,8 @@ const closeDeleteModal = () => {
 const getCategories = async () => {
   const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
   categories.value = response.data.data
+
+  localStorage.setItem('categories', JSON.stringify(categories.value))
 }
 
 const getProducts = async () => {
@@ -39,6 +57,8 @@ const getProducts = async () => {
   products.value = response.data.data
   // Sort product by date created desc
   products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  localStorage.setItem('products', JSON.stringify(products.value))
 }
 
 const deleteProduct = async () => {
@@ -135,8 +155,12 @@ const postProduct = async () => {
 }
 
 onMounted(() => {
-  getCategories() // Fetch categories when the component is mounted
-  getProducts() // Fetch products when the component is mounted
+  if (categories.value.length === 0) {
+    getCategories() // Fetch categories when the component is mounted
+  }
+  if (products.value.length === 0) {
+    getProducts() // Fetch products when the component is mounted
+  }
   watchEffect(() => {
     if (!selectedCategory.value || products.value.length === 0) {
       codeProduct.value = ''
