@@ -14,31 +14,40 @@ const products = ref([]) // Reactive variable to hold products
 const message = ref('Ini Message')
 const show = ref(false)
 const modalType = ref('warning')
-const startPage = ref(0)
-const limitPage = ref(5)
-const totalData = ref(0)
-const currentPage = ref(1)
+const totalDataOnMounted = ref(0)
+const deleteId = ref(null)
+
+// For Products Component modal
+const openDeleteModal = (id) => {
+  message.value = `Are you sure you want to delete?`
+  show.value = true
+  modalType.value = 'delete'
+  deleteId.value = id
+}
+
+const closeDeleteModal = () => {
+  show.value = false
+}
 
 const getCategories = async () => {
   const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
   categories.value = response.data.data
 }
 
-const getProducts = async (start, limit) => {
+const getProducts = async () => {
   const response = await axios.get(
-    `${STRAPI_URL}/api/products?populate=product_category&pagination[start]=${start}&pagination[limit]=${limit}&pagination[withCount]=true`,
+    `${STRAPI_URL}/api/products?populate=product_category`,
   )
   products.value = response.data.data
   // Sort product by date created desc
   products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-
-  totalData.value = response.data.meta.pagination.total
 }
 
-const deleteProduct = async (id) => {
+const deleteProduct = async () => {
   try {
-    await axios.delete(`${STRAPI_URL}/api/products/${id}`)
+    await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
     getProducts() // Refresh the product list after deletion
+    show.value = false // Close the modal
   } catch (error) {
     console.error('Error deleting product:', error)
   }
@@ -129,7 +138,7 @@ const postProduct = async () => {
 
 onMounted(() => {
   getCategories() // Fetch categories when the component is mounted
-  getProducts(startPage.value, limitPage.value) // Fetch products when the component is mounted
+  getProducts() // Fetch products when the component is mounted
   watchEffect(() => {
     if (!selectedCategory.value || products.value.length === 0) {
       codeProduct.value = ''
@@ -137,56 +146,17 @@ onMounted(() => {
     }
     codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
   })
+  totalDataOnMounted.value = products.value.length // Store the total data count on mounted
 })
 
-function nextPage() {
-  startPage.value += limitPage.value
-  getProducts(startPage.value, limitPage.value)
-
-  if (startPage.value < 0) {
-    startPage.value = 0
-    getProducts(startPage.value, limitPage.value)
-  }
-
-  if (startPage.value === 0) {
-    currentPage.value = 1
-  } else {
-    currentPage.value = Math.ceil(startPage.value / limitPage.value) + 1
-  }
-}
-
-function prevPage() {
-  if (startPage.value > 0) {
-    startPage.value -= limitPage.value
-    getProducts(startPage.value, limitPage.value)
-  }
-
-  if (startPage.value < 0) {
-    startPage.value = 0
-    getProducts(startPage.value, limitPage.value)
-  }
-
-  if (startPage.value === 0) {
-    currentPage.value = 1
-  } else {
-    currentPage.value = Math.ceil(startPage.value / limitPage.value) + 1
-  }
-}
-
-function gotoPage(page) {
-  startPage.value = (page - 1) * limitPage.value
-  getProducts(startPage.value, limitPage.value)
-  currentPage.value = page
-}
 </script>
 
 <template>
   <div class="px-4">
-    <h1 class="text-2xl font-bold text-base">Products</h1>
     <div class="mt-4">
       <div class="bg-white rounded-xl mb-4 shadow">
         <div class="bg-base text-secondary p-4 rounded-t-xl">
-          <h1 class="text-2xl font-bold">Add Products</h1>
+          <h1 class="text-xl font-bold">Add Products</h1>
         </div>
         <div class="px-6 py-2">
           <form
@@ -203,7 +173,7 @@ function gotoPage(page) {
                 name="product_category"
                 id=""
                 v-model="selectedCategory"
-                class="border border-sub p-2 rounded min-w-[250px] bg-white text-base focus:outline-yellow-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                 defaultValue=""
               >
                 <option value="" disabled>Select Category</option>
@@ -218,7 +188,7 @@ function gotoPage(page) {
               <input
                 name="product_code"
                 type="text"
-                class="border border-sub p-2 rounded w-fit bg-gray-100 text-base"
+                class="border border-base p-2 rounded w-fit bg-gray-100 text-base"
                 v-model="codeProduct"
                 disabled
               />
@@ -227,14 +197,14 @@ function gotoPage(page) {
               <input
                 name="product_name"
                 type="text"
-                class="border border-sub p-2 rounded min-w-[250px] bg-white text-base focus:outline-yellow-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                 placeholder="Product Name"
                 v-model="nameProduct"
               />
               <input
                 name="product_description"
                 type="text"
-                class="border border-sub p-2 rounded min-w-[250px] bg-white text-base focus:outline-yellow-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                 placeholder="Description"
                 v-model="descriptionProduct"
               />
@@ -243,13 +213,13 @@ function gotoPage(page) {
                 type="text"
                 v-model="priceProduct"
                 @input="handlePriceInput"
-                class="border border-sub p-2 rounded min-w-[250px] bg-white text-base focus:outline-yellow-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                 placeholder="Price"
               />
               <input
                 name="product_qty"
                 type="number"
-                class="border border-sub p-2 rounded min-w-[250px] bg-white text-base focus:outline-yellow-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                 placeholder="Quantity"
                 v-model="quantityProduct"
               />
@@ -267,15 +237,12 @@ function gotoPage(page) {
       </div>
       <products_component
         @deleteProduct="deleteProduct"
-        @nextPage="nextPage"
-        @prevPage="prevPage"
-        @goToPage="gotoPage"
+        @openDeleteModal="openDeleteModal"
+        @closeDeleteModal="closeDeleteModal"
         :products="products"
-        :startPage="startPage"
-        :totalData="totalData"
-        :currentPage="currentPage"
+        :totalDataOnMounted="totalDataOnMounted"
       />
-      <alert-component :message="message" :show="show" @close="show = false" :type="modalType" />
+      <alert-component :message="message" :show="show" @close="show = false" :type="modalType" @confirm="deleteProduct"/>
     </div>
   </div>
 </template>

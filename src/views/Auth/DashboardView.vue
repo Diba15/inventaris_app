@@ -213,8 +213,7 @@ updateChartData(state.selectedFilter)
 <template>
   <main>
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row justify-between items-center">
-      <h1 class="text-2xl font-bold text-base">Dashboard</h1>
+    <div class="flex flex-col sm:flex-row justify-end items-center">
       <div class="flex items-center">
         <button
           class="bg-base text-secondary px-4 py-1.5 rounded-l-md cursor-pointer border-r-secondary border-r-2 text-sm"

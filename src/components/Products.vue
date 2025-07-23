@@ -1,37 +1,75 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import AlertComponent from './AlertComponent.vue'
 
 defineOptions({
   name: 'products_component',
 })
 
-const emit = defineEmits(['deleteProduct', 'nextPage', 'prevPage', 'goToPage'])
-const show = ref(false)
-const message = ref('')
-const modalType = ref('delete')
+const emit = defineEmits(['deleteProduct', 'openDeleteModal'])
+const startPage = ref(0)
+const totalData = ref(0)
+const currentPage = ref(1)
 
 const props = defineProps({
   products: {
     type: Array,
     default: () => [],
   },
-  startPage: {
+  totalDataOnMounted: {
     type: Number,
     default: 0,
   },
-  totalData: {
-    type: Number,
-    default: 5,
-  },
-  currentPage: {
-    type: Number,
-    default: 1,
-  },
 })
+
+totalData.value = props.totalDataOnMounted
 
 const sortOrder = ref('asc')
 const sortKey = ref('product_category')
+
+// Filter products per page
+const limit = 5
+const start = computed(() => startPage.value * limit)
+const end = computed(() => startPage.value * limit + limit)
+
+const paginatedProducts = computed(() => {
+  return props.products.slice(start.value, end.value)
+})
+
+function nextPage() {
+  if (startPage.value < Math.ceil(props.products.length / limit) - 1) {
+    startPage.value++
+  }
+  currentPage.value = startPage.value + 1
+  totalData.value = props.products.length
+  nextTick(() => {
+    const input = document.querySelector('#current-page input')
+    if (input) {
+      input.value = currentPage.value
+    }
+  })
+}
+
+function prevPage() {
+  if (startPage.value > 0) {
+    startPage.value--
+  }
+  currentPage.value = startPage.value + 1
+  totalData.value = props.products.length
+  nextTick(() => {
+    const input = document.querySelector('#current-page input')
+    if (input) {
+      input.value = currentPage.value
+    }
+  })
+}
+
+function goToPage(page) {
+  const totalPages = Math.ceil(props.products.length / limit)
+  if (page >= 1 && page <= totalPages) {
+    startPage.value = page - 1
+  }
+}
 
 function sortBy(key) {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
@@ -40,14 +78,14 @@ function sortBy(key) {
 
 const handleSearch = (event) => {
   const searchTerm = event.target.value.toLowerCase()
-  const filteredProducts = props.products.filter((product) =>
+  const filteredProducts = paginatedProducts.value.filter((product) =>
     product.product_name.toLowerCase().includes(searchTerm),
   )
   sortedProducts.value = filteredProducts
 }
 
 const sortedProducts = computed(() => {
-  return [...props.products].sort((a, b) => {
+  return [...paginatedProducts.value].sort((a, b) => {
     const aValue = a[sortKey.value]
     const bValue = b[sortKey.value]
 
@@ -59,30 +97,8 @@ const sortedProducts = computed(() => {
   })
 })
 
-function deleteProduct(id) {
-  emit('deleteProduct', id)
-}
-
-function nextPage() {
-  emit('nextPage')
-}
-
-function prevPage() {
-  emit('prevPage')
-}
-
-function goToPage(page) {
-  emit('goToPage', page)
-}
-
-function openDeleteModal() {
-  show.value = true
-
-  modalType.value = 'delete'
-
-  message.value = 'Are you sure you want to delete this product?'
-
-  show.value = false
+function openDeleteModal(id) {
+  emit('openDeleteModal', id)
 }
 </script>
 
@@ -195,16 +211,12 @@ function openDeleteModal() {
                   <i class="fa-solid fa-eye"></i>
                 </button>
               </RouterLink>
-              <button class="text-red-500 hover:text-red-700 text-xl" @click="openDeleteModal">
+              <button
+                class="text-red-500 hover:text-red-700 text-xl"
+                @click="openDeleteModal(product.documentId)"
+              >
                 <i class="fa-solid fa-trash-can"></i>
               </button>
-              <alert-component
-                :message="message"
-                :show="show"
-                @close="show = false"
-                @confirm="deleteProduct(product.documentId)"
-                :type="modalType"
-              />
             </td>
           </tr>
           <tr v-if="products.length === 0">
@@ -214,7 +226,7 @@ function openDeleteModal() {
       </table>
     </div>
     <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
-      <div>{{ startPage + 1 }} - {{ startPage + products.length }} of {{ totalData }}</div>
+      <div>{{ startPage + 1 }} - {{ startPage + limit }} of {{ totalData }}</div>
       <div class="flex gap-2 items-center">
         <div class="p-1 cursor-pointer" v-on:click="prevPage()">
           <i class="fa fa-angle-left"></i>

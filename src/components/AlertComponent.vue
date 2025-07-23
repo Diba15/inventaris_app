@@ -17,8 +17,12 @@ defineProps({
 
 const emit = defineEmits(['close', 'confirm'])
 
-function confirm(id) {
-  emit('confirm', id)
+function confirm() {
+  emit('confirm')
+}
+
+function close() {
+  emit('close')
 }
 </script>
 
@@ -48,13 +52,13 @@ function confirm(id) {
         </p>
         <div v-if="type === 'delete'" class="flex gap-2">
           <button
-            @click="emit('confirm')"
+            @click="confirm"
             class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white transition"
           >
             Konfirmasi
           </button>
           <button
-            @click="confirm"
+            @click="close"
             class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 transition"
           >
             Batal
