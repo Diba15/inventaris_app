@@ -15,15 +15,9 @@ if (menuToggle === 'closed') {
   isOpen.value = true
 }
 
-console.log('Menu state:', isOpen.value ? 'open' : 'closed')
-
 const toggleMenu = () => {
   isOpen.value = !isOpen.value
   localStorage.setItem('menuToogle', isOpen.value ? 'open' : 'closed');
-}
-const closeMenu = () => {
-  isOpen.value = false
-  localStorage.setItem('menuToogle', 'closed');
 }
 
 const menuItems = [

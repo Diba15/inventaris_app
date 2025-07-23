@@ -92,7 +92,6 @@ const sortedProducts = computed(() => {
     if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
     if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
 
-    console.log(aValue, bValue, sortKey.value, sortOrder.value)
     return 0
   })
 })

@@ -7,8 +7,6 @@ import axios from 'axios'
 
 const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
-console.log(STRAPI_URL)
-
 const categories = ref([]) // Reactive variable to hold categories
 const products = ref([]) // Reactive variable to hold products
 const message = ref('Ini Message')
