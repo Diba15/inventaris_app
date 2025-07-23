@@ -1,10 +1,10 @@
 <script setup>
 import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
-
 import { onMounted, ref, watchEffect } from 'vue'
 import axios from 'axios'
 
+// Environment variable for Strapi URL
 const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
 const categories = ref([]) // Reactive variable to hold categories
@@ -15,6 +15,7 @@ const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
 
+// Retrieve categories and products from localStorage if available
 try {
   const storedCategories = localStorage.getItem('categories')
   if (storedCategories) {
@@ -43,6 +44,7 @@ const closeDeleteModal = () => {
   show.value = false
 }
 
+// Function to fetch categories and products
 const getCategories = async () => {
   const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
   categories.value = response.data.data
@@ -51,9 +53,7 @@ const getCategories = async () => {
 }
 
 const getProducts = async () => {
-  const response = await axios.get(
-    `${STRAPI_URL}/api/products?populate=product_category`,
-  )
+  const response = await axios.get(`${STRAPI_URL}/api/products?populate=product_category`)
   products.value = response.data.data
   // Sort product by date created desc
   products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -61,6 +61,7 @@ const getProducts = async () => {
   localStorage.setItem('products', JSON.stringify(products.value))
 }
 
+// Function to delete a product
 const deleteProduct = async () => {
   try {
     await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
@@ -71,6 +72,7 @@ const deleteProduct = async () => {
   }
 }
 
+// Function to get the next available product code based on category
 const getNextAvailableProductCode = (categoryName) => {
   const matchedCategory = categories.value.find((cat) => cat.category === categoryName)
   if (!matchedCategory) return `${categoryName}_1`
@@ -105,6 +107,7 @@ const descriptionProduct = ref('')
 const priceProduct = ref('')
 const quantityProduct = ref(1)
 
+// Handle price input to format it correctly
 function handlePriceInput(event) {
   const input = event.target.value
   const numericValue = input.replace(/[^0-9]/g, '')
@@ -112,6 +115,7 @@ function handlePriceInput(event) {
   priceProduct.value = numericValue ? numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : ''
 }
 
+// Function to post a new product
 const postProduct = async () => {
   const category_id = categories.value.find(
     (cat) => cat.category === selectedCategory.value,
@@ -154,6 +158,7 @@ const postProduct = async () => {
   getProducts() // Refresh the product list after adding a new product
 }
 
+// Watch for changes in products to update total data count
 onMounted(() => {
   if (categories.value.length === 0) {
     getCategories() // Fetch categories when the component is mounted
@@ -170,7 +175,6 @@ onMounted(() => {
   })
   totalDataOnMounted.value = products.value.length // Store the total data count on mounted
 })
-
 </script>
 
 <template>
@@ -264,7 +268,13 @@ onMounted(() => {
         :products="products"
         :totalDataOnMounted="totalDataOnMounted"
       />
-      <alert-component :message="message" :show="show" @close="show = false" :type="modalType" @confirm="deleteProduct"/>
+      <alert-component
+        :message="message"
+        :show="show"
+        @close="show = false"
+        :type="modalType"
+        @confirm="deleteProduct"
+      />
     </div>
   </div>
 </template>

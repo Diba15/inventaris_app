@@ -5,6 +5,7 @@ defineOptions({
   name: 'products_component',
 })
 
+// Props for the component
 const emit = defineEmits(['deleteProduct', 'openDeleteModal'])
 const startPage = ref(0)
 const totalData = ref(0)
@@ -35,6 +36,7 @@ const paginatedProducts = computed(() => {
   return props.products.slice(start.value, end.value)
 })
 
+// Function to handle pagination
 function nextPage() {
   if (startPage.value < Math.ceil(props.products.length / limit) - 1) {
     startPage.value++
@@ -70,11 +72,13 @@ function goToPage(page) {
   }
 }
 
+// Function to sort products by a key ascending and descending
 function sortBy(key) {
   sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
   sortKey.value = key
 }
 
+// Function to handle search input
 const handleSearch = (event) => {
   const searchTerm = event.target.value.toLowerCase()
   const filteredProducts = paginatedProducts.value.filter((product) =>
@@ -83,6 +87,7 @@ const handleSearch = (event) => {
   sortedProducts.value = filteredProducts
 }
 
+// Computed property to sort products based on the selected key and order
 const sortedProducts = computed(() => {
   return [...paginatedProducts.value].sort((a, b) => {
     const aValue = a[sortKey.value]
@@ -95,6 +100,7 @@ const sortedProducts = computed(() => {
   })
 })
 
+// Function to open delete modal
 function openDeleteModal(id) {
   emit('openDeleteModal', id)
 }

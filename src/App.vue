@@ -13,7 +13,6 @@ const menuProfile = [
 
 function toggleProfileMenu() {
   profileToggle.value = !profileToggle.value
-  console.log('Profile menu state:', profileToggle.value ? 'open' : 'closed')
 }
 </script>
 
