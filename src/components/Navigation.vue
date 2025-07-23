@@ -6,8 +6,14 @@ defineOptions({
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 const isOpen = ref(false)
-const menuToggle =localStorage.getItem('menuToogle') || 'open';
-const profileToggle = ref(false)
+const menuToggle = localStorage.getItem('menuToogle') || 'open'
+
+const props = defineProps({
+  toggleProfile: {
+    type: Boolean,
+    required: true,
+  },
+})
 
 if (menuToggle === 'closed') {
   isOpen.value = false
@@ -17,7 +23,11 @@ if (menuToggle === 'closed') {
 
 const toggleMenu = () => {
   isOpen.value = !isOpen.value
-  localStorage.setItem('menuToogle', isOpen.value ? 'open' : 'closed');
+  localStorage.setItem('menuToogle', isOpen.value ? 'open' : 'closed')
+
+  if (props.toggleProfile === true) {
+    toggleProfileMenu()
+  }
 }
 
 const menuItems = [
@@ -29,17 +39,12 @@ const menuItems = [
   { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
 ]
 
-const toggleProfileMenu = () => {
-  profileToggle.value = !profileToggle.value
-  console.log('Profile menu state:', profileToggle.value ? 'open' : 'closed')
+const emit = defineEmits(['toggleProfileMenu'])
+
+function toggleProfileMenu() {
+  emit('toggleProfileMenu')
+  console.log('Profile menu toggled')
 }
-
-
-const menuProfile = [
-  { name: 'Edit Profile', action: () => console.log('Edit Profile clicked') },
-  { name: 'Settings', action: () => console.log('Settings clicked') },
-  { name: 'Logout', action: () => console.log('Logout clicked') },
-]
 </script>
 
 <template>
@@ -73,13 +78,7 @@ const menuProfile = [
     </div>
 
     <div>
-      <div id="profile_menu" class="flex flex-col gap-2 text-sm mb-3 items-start bg-sub text-base p-4 rounded" :class="{ hidden: !profileToggle }">
-        <div v-for="item in menuProfile" :key="item.name" class="cursor-pointer hover:font-bold transition-colors w-full" @click="item.action">
-          {{ item.name }}
-          <div class="h-[0.5px] width-full bg-base mt-2"></div>
-        </div>
-      </div>
-      <div id="user" class="flex items-center justify-between mt-auto">
+      <div id="user" class="flex items-center justify-between mt-auto" @click="toggleProfileMenu">
         <div id="user_img">
           <img
             src="https://ui-avatars.com/api/?name=User&background=random&size=30"
@@ -94,7 +93,6 @@ const menuProfile = [
         <button
           :class="{ hidden: !isOpen }"
           class="ml-auto text-secondar hover:font-bold transition-colors cursor-pointer"
-          @click="toggleProfileMenu"
         >
           <i class="fa-solid fa-chevron-up"></i>
         </button>
