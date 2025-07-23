@@ -59,6 +59,8 @@ const getProducts = async () => {
   products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
   localStorage.setItem('products', JSON.stringify(products.value))
+  totalDataOnMounted.value = products.value.length // Store the total data count on mounted
+  console.log(totalDataOnMounted.value)
 }
 
 // Function to delete a product
@@ -160,20 +162,24 @@ const postProduct = async () => {
 
 // Watch for changes in products to update total data count
 onMounted(() => {
-  if (categories.value.length === 0) {
-    getCategories() // Fetch categories when the component is mounted
-  }
-  if (products.value.length === 0) {
-    getProducts() // Fetch products when the component is mounted
-  }
-  watchEffect(() => {
-    if (!selectedCategory.value || products.value.length === 0) {
-      codeProduct.value = ''
-      return
+  try {
+    if (categories.value.length === 0) {
+      getCategories() // Fetch categories when the component is mounted
     }
-    codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
-  })
-  totalDataOnMounted.value = products.value.length // Store the total data count on mounted
+    if (products.value.length === 0) {
+      getProducts() // Fetch products when the component is mounted
+    }
+    watchEffect(() => {
+      if (!selectedCategory.value || products.value.length === 0) {
+        codeProduct.value = ''
+        return
+      }
+      codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
+    })
+  }
+  catch (error) {
+    console.error('Error fetching initial data:', error)
+  }
 })
 </script>
 

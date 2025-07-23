@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watchEffect } from 'vue'
 
 defineOptions({
   name: 'products_component',
@@ -10,6 +10,11 @@ const emit = defineEmits(['deleteProduct', 'openDeleteModal'])
 const startPage = ref(0)
 const totalData = ref(0)
 const currentPage = ref(1)
+const startPageCount = computed(() => startPage.value * 5 + 1)
+const endPageCount = computed(() => {
+  const end = startPage.value * 5 + 5
+  return end > totalData.value ? totalData.value : end
+})
 
 const props = defineProps({
   products: {
@@ -22,7 +27,9 @@ const props = defineProps({
   },
 })
 
-totalData.value = props.totalDataOnMounted
+watchEffect(() => {
+  totalData.value = props.totalDataOnMounted || props.products.length
+})
 
 const sortOrder = ref('asc')
 const sortKey = ref('product_category')
@@ -230,7 +237,7 @@ function openDeleteModal(id) {
       </table>
     </div>
     <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
-      <div>{{ startPage + 1 }} - {{ startPage + limit }} of {{ totalData }}</div>
+      <div>{{ startPageCount }} - {{ endPageCount }} of {{ totalData }}</div>
       <div class="flex gap-2 items-center">
         <div class="p-1 cursor-pointer" v-on:click="prevPage()">
           <i class="fa fa-angle-left"></i>
