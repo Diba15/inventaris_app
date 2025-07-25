@@ -172,7 +172,7 @@ const postProduct = async () => {
     priceProduct.value = ''
     quantityProduct.value = 1
     if (imageInput.value && imageInput.value.value !== undefined) {
-      imageInput.value.value = '' // Reset the file input
+      imageInput.value.value = null // Reset the file input
     }
     const imgPreview = document.querySelector('#image-preview')
     if (imgPreview) {
@@ -246,7 +246,7 @@ function handleImageUpload(event) {
 function clearImageHandle() {
   const img = document.querySelector('#image-preview')
   if (img) {
-    img.src = ''
+    img.src = null
     img.classList.add('hidden')
   }
   const imgContainer = document.querySelector('#image-icon-container')
@@ -254,7 +254,7 @@ function clearImageHandle() {
     imgContainer.classList.remove('hidden')
   }
   if (imageInput.value) {
-    imageInput.value.value = '' // Reset the file input
+    imageInput.value.value = null // Reset the file input
   }
   const imgPreviewContainer = document.querySelector('#image-preview-container')
   if (imgPreviewContainer) {
