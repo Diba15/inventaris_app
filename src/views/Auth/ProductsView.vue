@@ -147,22 +147,34 @@ const postProduct = async () => {
       return
     }
 
+    // Post product data to Strapi
+
+    // Upload image if available
+    const imageFile = imageInput.value ? imageInput.value.files[0] : null
+
     const productRes = await axios.post(`${STRAPI_URL}/api/products`, {
       data,
     })
 
-    // Upload image if available
-    const productId = productRes.data.data.documentId
-    const fd = new FormData()
-    const imageFile = imageInput.value?.files?.[0]
     if (imageFile) {
+      const fd = new FormData()
       fd.append('files', imageFile)
-      fd.append('refId', productId)
-      fd.append('ref', 'api::product.product')
-      fd.append('field', 'product_image')
-      await axios.post(`${STRAPI_URL}/api/upload`, {
-        fd,
+
+      const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
+        method: 'POST',
+        body: fd,
       })
+
+      if (uploadRes.ok) {
+        const uploadResult = await uploadRes.json()
+        const imageId = uploadResult[0].id
+
+        await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
+          data: {
+            product_image: imageId, // Assuming product_image is the field for the image
+          },
+        })
+      }
     }
 
     selectedCategory.value = ''
@@ -183,6 +195,10 @@ const postProduct = async () => {
     if (imgContainer) {
       imgContainer.classList.remove('hidden') // Show the image icon container
     }
+    const imgPreviewContainer = document.querySelector('#image-preview-container')
+    if (imgPreviewContainer) {
+      imgPreviewContainer.querySelector('button').classList.add('hidden') // Hide the clear image button
+    }
 
     getProducts() // Refresh the product list after adding a new product
   } catch (error) {
@@ -199,9 +215,7 @@ onMounted(() => {
     if (categories.value.length === 0) {
       getCategories() // Fetch categories when the component is mounted
     }
-    if (products.value.length === 0) {
-      getProducts() // Fetch products when the component is mounted
-    }
+    getProducts() // Fetch products when the component is mounted
     watchEffect(() => {
       if (!selectedCategory.value || products.value.length === 0) {
         codeProduct.value = ''
@@ -239,7 +253,6 @@ function handleImageUpload(event) {
     if (imgPreviewContainer) {
       imgPreviewContainer.querySelector('button').classList.remove('hidden')
     }
-    imageInput.value = event.target // Store the input element for later use
   }
 }
 
@@ -277,7 +290,6 @@ function clearImageHandle() {
             action=""
             id="add_product"
             class="flex flex-col gap-4 my-4"
-            @submit="postProduct"
             @submit.prevent
           >
             <div class="flex gap-4 items-center">
@@ -289,6 +301,7 @@ function clearImageHandle() {
                   name="image"
                   accept="image/*"
                   @change="handleImageUpload($event)"
+                  ref="imageInput"
                 />
                 <div
                   id="image-icon-container"
@@ -305,7 +318,13 @@ function clearImageHandle() {
                     class="object-contain w-[150px] h-[150px] rounded-top hidden cursor-pointer"
                     alt=""
                   />
-                  <button type="button" class="text-xs text-gray-500 hidden cursor-pointer" @click="clearImageHandle">Clear Image</button>
+                  <button
+                    type="button"
+                    class="text-xs text-gray-500 hidden cursor-pointer"
+                    @click="clearImageHandle"
+                  >
+                    Clear Image
+                  </button>
                 </div>
               </div>
               <div class="flex flex-col gap-4">
@@ -366,7 +385,8 @@ function clearImageHandle() {
                   />
                 </div>
                 <button
-                  type="submit"
+                  @click="postProduct"
+                  type="button"
                   class="bg-sub text-white px-4 py-2 min-w-[250px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
                 >
                   Add Product
