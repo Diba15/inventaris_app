@@ -108,8 +108,8 @@ const sortedProducts = computed(() => {
 })
 
 // Function to open delete modal
-function openDeleteModal(id) {
-  emit('openDeleteModal', id)
+function openDeleteModal(id, imageId) {
+  emit('openDeleteModal', id, imageId)
 }
 </script>
 
@@ -224,7 +224,7 @@ function openDeleteModal(id) {
               </RouterLink>
               <button
                 class="text-red-500 hover:text-red-700 text-xl"
-                @click="openDeleteModal(product.documentId)"
+                @click="openDeleteModal(product.documentId, product.product_image.id)"
               >
                 <i class="fa-solid fa-trash-can"></i>
               </button>

@@ -16,6 +16,7 @@ const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
 const loadingShow = ref(false)
+const imageDelete = ref(null)
 
 // Retrieve categories and products from localStorage if available
 try {
@@ -35,11 +36,12 @@ try {
 }
 
 // For Products Component modal
-const openDeleteModal = (id) => {
+function openDeleteModal(id, imageId) {
   message.value = `Are you sure you want to delete?`
   show.value = true
   modalType.value = 'delete'
   deleteId.value = id
+  imageDelete.value = imageId // Store the image ID for deletion
 }
 
 const closeDeleteModal = () => {
@@ -55,7 +57,7 @@ const getCategories = async () => {
 }
 
 const getProducts = async () => {
-  const response = await axios.get(`${STRAPI_URL}/api/products?populate=product_category`)
+  const response = await axios.get(`${STRAPI_URL}/api/products?populate=*`)
   products.value = response.data.data
   // Sort product by date created desc
   products.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -68,6 +70,7 @@ const getProducts = async () => {
 const deleteProduct = async () => {
   try {
     await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
+    await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`) // Assuming product images are stored separately
     getProducts() // Refresh the product list after deletion
     show.value = false // Close the modal
   } catch (error) {
