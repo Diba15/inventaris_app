@@ -1,6 +1,7 @@
 <script setup>
 import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
+import LoadingComponent from '@/components/LoadingComponent.vue'
 import { onMounted, ref, watchEffect } from 'vue'
 import axios from 'axios'
 
@@ -14,6 +15,7 @@ const show = ref(false)
 const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
+const loadingShow = ref(false)
 
 // Retrieve categories and products from localStorage if available
 try {
@@ -124,6 +126,8 @@ const postProduct = async () => {
       (cat) => cat.category === selectedCategory.value,
     )?.documentId
 
+    loadingShow.value = true // Show loading indicator
+
     const data = {
       product_category: category_id,
       product_code: codeProduct.value,
@@ -173,6 +177,8 @@ const postProduct = async () => {
           data: {
             product_image: imageId, // Assuming product_image is the field for the image
           },
+        }).then(() => {
+          loadingShow.value = false // Hide loading indicator
         })
       }
     }
@@ -186,19 +192,10 @@ const postProduct = async () => {
     if (imageInput.value && imageInput.value.value !== undefined) {
       imageInput.value.value = null // Reset the file input
     }
-    const imgPreview = document.querySelector('#image-preview')
-    if (imgPreview) {
-      imgPreview.src = ''
-      imgPreview.classList.add('hidden') // Hide the image preview
-    }
-    const imgContainer = document.querySelector('#image-icon-container')
-    if (imgContainer) {
-      imgContainer.classList.remove('hidden') // Show the image icon container
-    }
-    const imgPreviewContainer = document.querySelector('#image-preview-container')
-    if (imgPreviewContainer) {
-      imgPreviewContainer.querySelector('button').classList.add('hidden') // Hide the clear image button
-    }
+    imgPreview.value = false // Hide the image preview
+    buttonClear.value = false // Hide the clear button
+    const img = document.querySelector('#image-preview')
+    if (img) img.src = ''
 
     getProducts() // Refresh the product list after adding a new product
   } catch (error) {
@@ -228,6 +225,10 @@ onMounted(() => {
   }
 })
 
+// Reactive variable for image input
+const imgPreview = ref(false)
+const buttonClear = ref(false)
+
 function imageUploadHandleClick() {
   const input = document.querySelector('#image_upload input')
   if (input) {
@@ -243,35 +244,23 @@ function handleImageUpload(event) {
       const img = document.querySelector('#image-preview')
       if (img) {
         img.src = e.target.result
-        img.classList.remove('hidden')
+        imgPreview.value = true // Show the image preview
+        buttonClear.value = true
       }
     }
     reader.readAsDataURL(file)
-    const imgContainer = document.querySelector('#image-icon-container')
-    imgContainer.classList.add('hidden')
-    const imgPreviewContainer = document.querySelector('#image-preview-container')
-    if (imgPreviewContainer) {
-      imgPreviewContainer.querySelector('button').classList.remove('hidden')
-    }
   }
 }
 
 function clearImageHandle() {
   const img = document.querySelector('#image-preview')
   if (img) {
-    img.src = null
-    img.classList.add('hidden')
-  }
-  const imgContainer = document.querySelector('#image-icon-container')
-  if (imgContainer) {
-    imgContainer.classList.remove('hidden')
+    img.src = ''
+    imgPreview.value = false // Hide the image preview
+    buttonClear.value = false // Hide the clear button
   }
   if (imageInput.value) {
     imageInput.value.value = null // Reset the file input
-  }
-  const imgPreviewContainer = document.querySelector('#image-preview-container')
-  if (imgPreviewContainer) {
-    imgPreviewContainer.querySelector('button').classList.add('hidden')
   }
 }
 </script>
@@ -293,7 +282,7 @@ function clearImageHandle() {
             @submit.prevent
           >
             <div class="flex gap-4 items-center">
-              <div id="image_upload" class="flex items-center justify-centerbg-gray-100 rounded">
+              <div id="image_upload" class="flex items-center justify-center bg-gray-100 rounded">
                 <input
                   type="file"
                   class="hidden"
@@ -304,6 +293,7 @@ function clearImageHandle() {
                   ref="imageInput"
                 />
                 <div
+                  v-show="!imgPreview"
                   id="image-icon-container"
                   class="flex items-center justify-center w-[150px] h-[150px] bg-gray-200 rounded cursor-pointer hover:bg-gray-300 transition-all duration-300"
                   @click="imageUploadHandleClick"
@@ -315,13 +305,15 @@ function clearImageHandle() {
                     id="image-preview"
                     @click="imageUploadHandleClick"
                     src=""
-                    class="object-contain w-[150px] h-[150px] rounded-top hidden cursor-pointer"
+                    class="object-contain w-[150px] h-[150px] rounded-top cursor-pointer"
                     alt=""
+                    v-show="imgPreview"
                   />
                   <button
                     type="button"
-                    class="text-xs text-gray-500 hidden cursor-pointer"
+                    class="text-xs text-gray-500 cursor-pointer"
                     @click="clearImageHandle"
+                    v-show="buttonClear"
                   >
                     Clear Image
                   </button>
@@ -411,6 +403,7 @@ function clearImageHandle() {
         :type="modalType"
         @confirm="deleteProduct"
       />
+      <loading-component :show="loadingShow" />
     </div>
   </div>
 </template>
