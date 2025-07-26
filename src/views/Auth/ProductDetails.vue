@@ -15,11 +15,14 @@ import axios from 'axios'
 
 const product = ref(null)
 const isEditing = ref(false)
+const imgUrl = ref('')
+const imgPreview = ref(false)
 
 const getProductDetails = async () => {
   const id = route.params.id
   const response = await axios.get(`${STRAPI_URL}/api/products/${id}?populate=*`)
   product.value = response.data.data
+  imgUrl.value = response.data.data.product_image.url
 }
 
 onMounted(() => {
@@ -51,6 +54,12 @@ onMounted(() => {
       textarea.classList.add('bg-gray-100')
     }
   })
+
+  if (imgUrl.value) {
+    imgPreview.value = true
+  } else {
+    imgPreview.value = false
+  }
 })
 
 const updateProduct = async () => {
@@ -76,76 +85,98 @@ const updateProduct = async () => {
   textarea.classList.remove('bg-white')
   textarea.classList.add('bg-gray-100')
   inputs[0].focus() // Focus on the first input field after update
+}
 
-  isEditing.value = false
+function handleChangeImage() {
+  const imageInput = document.querySelector('#image-upload')
+  if (imageInput) {
+    imageInput.click()
+  }
 }
 </script>
 
 <template>
   <main class="text-base">
-    <h1 class="text-2xl font-bold">Product Details</h1>
-
     <div v-if="product" class="mt-4">
       <form action="" @submit="updateProduct">
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-2">
-            <label for="product_name" class="font-semibold">Nama Produk</label>
-            <input
-              type="text"
-              id="product_name"
-              v-model="product.product_name"
-              class="border border-gray-300 rounded p-2 bg-gray-100"
-              readonly
-            />
+        <div class="flex flex-col gap-4 bg-white rounded shadow-lg">
+          <div class="p-4 bg-base text-white rounded-t flex justify-between items-center">
+            <h1 class="text-xl font-bold">Product Details</h1>
+            <button
+                type="button"
+                class="bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
+                @click="isEditing = !isEditing"
+              >
+                Save
+              </button>
           </div>
-          <div class="flex flex-col gap-2">
-            <label for="product_code" class="font-semibold">Kode Produk</label>
-            <input
-              type="text"
-              id="product_code"
-              v-model="product.product_code"
-              class="border border-gray-300 rounded p-2 bg-gray-100"
-              readonly
-            />
+          <div class="flex flex-row p-4 gap-4 items-center">
+            <!-- Image -->
+            <div class="flex flex-col mb-4 justify-center items-center">
+              <img
+                v-show="!imgPreview"
+                :src="imgUrl"
+                alt=""
+                class="object-contain w-[300px] h-[300px] rounded-top"
+              />
+              <input type="file" @change="imageUploadHandleClick" class="hidden" id="image-upload" />
+              <button
+                v-on:click="handleChangeImage"
+                id="changeImage"
+                type="button"
+                class="mb-2 bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded-br rounded-bl w-sm h-sm"
+                @click="imageUploadHandleClick"
+              >
+                Change Image
+              </button>
+            </div>
+            <!-- Form -->
+            <div class="flex flex-col gap-2 w-full">
+              <div class="flex flex-col gap-4 w-full">
+                <!-- Product -->
+                <div class="flex flex-col gap-2">
+                  <div class="flex flex-col gap-2">
+                    <label for="product_name" class="font-semibold">Nama Produk</label>
+                    <input
+                      type="text"
+                      id="product_name"
+                      v-model="product.product_name"
+                      class="border border-base rounded p-2 bg-white min-w-sm"
+                    />
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="product_description" class="font-semibold">Deskripsi</label>
+                    <textarea
+                      id="product_description"
+                      v-model="product.product_description"
+                      class="border border-base rounded p-2 bg-white min-w-sm"
+                    ></textarea>
+                  </div>
+                </div>
+                <!-- Price -->
+                <div class="flex flex-col gap-2">
+                  <div class="flex flex-col gap-2">
+                    <label for="product_price" class="font-semibold">Harga</label>
+                    <input
+                      type="text"
+                      id="product_price"
+                      v-model="product.product_price"
+                      class="border border-base rounded p-2 bg-white min-w-sm"
+                    />
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <label for="product_qty" class="font-semibold">Quantity</label>
+                    <input
+                      type="number"
+                      id="product_qty"
+                      v-model="product.product_qty"
+                      class="border border-base rounded p-2 bg-white min-w-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="flex flex-col gap-2">
-            <label for="product_description" class="font-semibold">Deskripsi</label>
-            <textarea
-              id="product_description"
-              v-model="product.product_description"
-              class="border border-gray-300 rounded p-2 bg-gray-100"
-              readonly
-            ></textarea>
-          </div>
-          <div class="flex flex-col gap-2">
-            <label for="product_price" class="font-semibold">Harga</label>
-            <input
-              type="text"
-              id="product_price"
-              v-model="product.product_price"
-              class="border border-gray-300 rounded p-2 bg-gray-100"
-              readonly
-            />
-          </div>
-          <div class="flex flex-col gap-2">
-            <label for="product_qty" class="font-semibold">Quantity</label>
-            <input
-              type="number"
-              id="product_qty"
-              v-model="product.product_qty"
-              class="border border-gray-300 rounded p-2 bg-gray-100"
-              readonly
-            />
-          </div>
-        </div>
-        <div class="mt-4">
-          <button
-            type="button"
-            class="bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded"
-            @click="isEditing = !isEditing"
-          >
-            Edit
-          </button>
         </div>
       </form>
     </div>
