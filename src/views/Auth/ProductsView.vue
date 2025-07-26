@@ -151,8 +151,6 @@ const postProduct = async () => {
       return
     }
 
-    // Post product data to Strapi
-
     // Upload image if available
     const imageFile = imageInput.value ? imageInput.value.files[0] : null
 
@@ -160,6 +158,7 @@ const postProduct = async () => {
       data,
     })
 
+    // Upload image
     if (imageFile) {
       const fd = new FormData()
       fd.append('files', imageFile)
@@ -169,20 +168,25 @@ const postProduct = async () => {
         body: fd,
       })
 
+      // Check if upload was successful
       if (uploadRes.ok) {
         const uploadResult = await uploadRes.json()
         const imageId = uploadResult[0].id
 
-        await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
-          data: {
-            product_image: imageId, // Assuming product_image is the field for the image
-          },
-        }).then(() => {
-          loadingShow.value = false // Hide loading indicator
-        })
+        // Update product with image ID
+        await axios
+          .put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
+            data: {
+              product_image: imageId, // Assuming product_image is the field for the image
+            },
+          })
+          .then(() => {
+            loadingShow.value = false // Hide loading indicator
+          })
       }
     }
 
+    // Reset form fields
     selectedCategory.value = ''
     codeProduct.value = ''
     nameProduct.value = ''
@@ -199,6 +203,7 @@ const postProduct = async () => {
 
     getProducts() // Refresh the product list after adding a new product
   } catch (error) {
+    // Handle errors
     console.error('Error posting product:', error)
     modalType.value = 'error'
     message.value = 'Failed to add product'
