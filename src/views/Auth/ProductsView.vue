@@ -1,8 +1,8 @@
 <script setup>
 import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
-import LoadingComponent from '@/components/LoadingComponent.vue'
 import { onMounted, ref, watchEffect } from 'vue'
+import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import axios from 'axios'
 
 // Environment variable for Strapi URL
@@ -68,13 +68,28 @@ const getProducts = async () => {
 
 // Function to delete a product
 const deleteProduct = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Deleting product...',
+    duration: 0,
+  })
   try {
     await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
     await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`) // Assuming product images are stored separately
     getProducts() // Refresh the product list after deletion
     show.value = false // Close the modal
+    notif.resolve({
+      type: 'success',
+      message: 'Product deleted successfully!',
+      duration: 3000,
+    })
   } catch (error) {
     console.error('Error deleting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to delete product. Please try again.',
+      duration: 3000,
+    })
   }
 }
 
@@ -124,6 +139,11 @@ function handlePriceInput(event) {
 
 // Function to post a new product
 const postProduct = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Adding product...',
+    duration: 0,
+  })
   try {
     const category_id = categories.value.find(
       (cat) => cat.category === selectedCategory.value,
@@ -205,12 +225,20 @@ const postProduct = async () => {
     if (img) img.src = ''
 
     getProducts() // Refresh the product list after adding a new product
+
+    notif.resolve({
+      type: 'success',
+      message: 'Product added successfully!',
+      duration: 3000,
+    })
   } catch (error) {
     // Handle errors
     console.error('Error posting product:', error)
-    modalType.value = 'error'
-    message.value = 'Failed to add product'
-    show.value = true
+    notif.reject({
+      type: 'error',
+      message: 'Failed to add product. Please try again.',
+      duration: 3000,
+    })
   }
 }
 
@@ -411,7 +439,11 @@ function clearImageHandle() {
         :type="modalType"
         @confirm="deleteProduct"
       />
-      <loading-component :show="loadingShow" />
+      <Notivue v-slot="item">
+        <Notification :item="item" :theme="pastelTheme">
+          <NotificationProgress :item="item" />
+        </Notification>
+      </Notivue>
     </div>
   </div>
 </template>

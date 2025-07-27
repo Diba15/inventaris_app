@@ -9,6 +9,8 @@ defineOptions({
 // ingin mengambil id dari route params
 import { useRoute } from 'vue-router'
 import LoadingComponent from '@/components/LoadingComponent.vue'
+import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
+
 const route = useRoute()
 
 import { ref, onMounted, watch } from 'vue'
@@ -79,45 +81,67 @@ const updateProduct = async () => {
   }
 
   console.log(updatedData)
-  await axios.put(`${STRAPI_URL}/api/products/${id}`, {
-    data: {
-      ...updatedData,
-    },
+
+  const notif = push.promise({
+    type: 'info',
+    message: 'Updating product...',
+    duration: 0,
   })
 
-  const deleteId = product.value.product_image?.id
+  try {
+    await axios.put(`${STRAPI_URL}/api/products/${id}`, {
+      data: {
+        ...updatedData,
+      },
+    })
 
-  const imgFile = imgInput.value ? imgInput.value.files[0] : null
+    const deleteId = product.value.product_image?.id
 
-  console.log(imgFile)
+    const imgFile = imgInput.value ? imgInput.value.files[0] : null
 
-  if (imgFile) {
-    const formData = new FormData()
-    formData.append('files', imgFile)
+    console.log(imgFile)
 
-    const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
-    const uploadedFile = imageResponse.data[0]
+    if (imgFile) {
+      const formData = new FormData()
+      formData.append('files', imgFile)
 
-    // Coba berbagai cara mengambil ID
-    const imageId = uploadedFile.id || uploadedFile.documentId || uploadedFile.attributes?.id
+      const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
+      const uploadedFile = imageResponse.data[0]
 
-    if (uploadedFile) {
-      // 2. Update product dengan image ID
-      const updateResponse = await axios.put(`${STRAPI_URL}/api/products/${id}`, {
-        data: {
-          product_image: imageId,
-        },
-      })
+      // Coba berbagai cara mengambil ID
+      const imageId = uploadedFile.id || uploadedFile.documentId || uploadedFile.attributes?.id
 
-      console.log('Product updated with new image:', updateResponse.data)
+      if (uploadedFile) {
+        // 2. Update product dengan image ID
+        const updateResponse = await axios.put(`${STRAPI_URL}/api/products/${id}`, {
+          data: {
+            product_image: imageId,
+          },
+        })
+
+        console.log('Product updated with new image:', updateResponse.data)
+      }
+
+      if (deleteId) {
+        handleDeleteImage(deleteId) // Delete the old image if it exists
+      }
     }
 
-    if (deleteId) {
-      handleDeleteImage(deleteId) // Delete the old image if it exists
-    }
+    getProductDetails() // Refresh the product details after update
+
+    notif.resolve({
+      type: 'success',
+      message: 'Product updated successfully!',
+      duration: 3000,
+    })
+  } catch (error) {
+    console.error('Error updating product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to update product. Please try again.',
+      duration: 3000,
+    })
   }
-
-  getProductDetails() // Refresh the product details after update
 }
 
 function handleChangeImage() {
@@ -237,6 +261,10 @@ function handleFileChange(event) {
         </div>
       </form>
     </div>
-    <LoadingComponent v-else />
+    <Notivue v-slot="item">
+      <Notification :item="item" :theme="pastelTheme">
+        <NotificationProgress :item="item" />
+      </Notification>
+    </Notivue>
   </main>
 </template>
