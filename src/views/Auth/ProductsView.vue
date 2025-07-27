@@ -1,8 +1,8 @@
 <script setup>
 import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
-import LoadingComponent from '@/components/LoadingComponent.vue'
 import { onMounted, ref, watchEffect } from 'vue'
+import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import axios from 'axios'
 
 // Environment variable for Strapi URL
@@ -68,13 +68,28 @@ const getProducts = async () => {
 
 // Function to delete a product
 const deleteProduct = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Deleting product...',
+    duration: 0,
+  })
   try {
     await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
     await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`) // Assuming product images are stored separately
     getProducts() // Refresh the product list after deletion
     show.value = false // Close the modal
+    notif.resolve({
+      type: 'success',
+      message: 'Product deleted successfully!',
+      duration: 3000,
+    })
   } catch (error) {
     console.error('Error deleting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to delete product. Please try again.',
+      duration: 3000,
+    })
   }
 }
 
@@ -124,12 +139,15 @@ function handlePriceInput(event) {
 
 // Function to post a new product
 const postProduct = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Adding product...',
+    duration: 0,
+  })
   try {
     const category_id = categories.value.find(
       (cat) => cat.category === selectedCategory.value,
     )?.documentId
-
-    loadingShow.value = true // Show loading indicator
 
     const data = {
       product_category: category_id,
@@ -205,12 +223,20 @@ const postProduct = async () => {
     if (img) img.src = ''
 
     getProducts() // Refresh the product list after adding a new product
+
+    notif.resolve({
+      type: 'success',
+      message: 'Product added successfully!',
+      duration: 3000,
+    })
   } catch (error) {
     // Handle errors
     console.error('Error posting product:', error)
-    modalType.value = 'error'
-    message.value = 'Failed to add product'
-    show.value = true
+    notif.reject({
+      type: 'error',
+      message: 'Failed to add product. Please try again.',
+      duration: 3000,
+    })
   }
 }
 
@@ -277,8 +303,15 @@ function clearImageHandle() {
   <div class="px-4">
     <div class="mt-4">
       <div class="bg-white rounded-xl mb-4 shadow">
-        <div class="bg-base text-secondary p-4 rounded-t-xl">
-          <h1 class="text-xl font-bold">Add Products</h1>
+        <div class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row">
+          <h1 class="text-xl font-bold self-start md:self-center">Add Products</h1>
+          <button
+            @click="postProduct"
+            type="button"
+            class="self-end-safe bg-sub text-white px-4 py-2 min-w-[100px] h-[40px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
+          >
+            Add Product
+          </button>
         </div>
         <div class="px-6 py-2">
           <form
@@ -289,8 +322,8 @@ function clearImageHandle() {
             class="flex flex-col gap-4 my-4"
             @submit.prevent
           >
-            <div class="flex gap-4 items-center">
-              <div id="image_upload" class="flex items-center justify-center bg-gray-100 rounded">
+            <div class="flex flex-col md:flex-row gap-4 items-center w-full">
+              <div id="image_upload" class="flex items-center justify-center rounded">
                 <input
                   type="file"
                   class="hidden"
@@ -303,7 +336,7 @@ function clearImageHandle() {
                 <div
                   v-show="!imgPreview"
                   id="image-icon-container"
-                  class="flex items-center justify-center w-[150px] h-[150px] bg-gray-200 rounded cursor-pointer hover:bg-gray-300 transition-all duration-300"
+                  class="flex items-center justify-center w-60 h-40 rounded cursor-pointer bg-gray-200 hover:bg-gray-300 transition-all duration-300"
                   @click="imageUploadHandleClick"
                 >
                   <i id="image-icon" class="fa-solid fa-image text-3xl text-gray-500"></i>
@@ -313,7 +346,7 @@ function clearImageHandle() {
                     id="image-preview"
                     @click="imageUploadHandleClick"
                     src=""
-                    class="object-contain w-[150px] h-[150px] rounded-top cursor-pointer"
+                    class="w-60 h-40 object-cover rounded-lg shadow-md cursor-pointer"
                     alt=""
                     v-show="imgPreview"
                   />
@@ -327,13 +360,13 @@ function clearImageHandle() {
                   </button>
                 </div>
               </div>
-              <div class="flex flex-col gap-4">
-                <div class="flex gap-4">
+              <div class="flex flex-col gap-4 w-full">
+                <div class="flex flex-col md:flex-row gap-4">
                   <select
                     name="product_category"
                     id=""
                     v-model="selectedCategory"
-                    class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                    class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                     defaultValue=""
                   >
                     <option value="" disabled>Select Category</option>
@@ -348,52 +381,48 @@ function clearImageHandle() {
                   <input
                     name="product_code"
                     type="text"
-                    class="border border-base p-2 rounded w-fit bg-gray-100 text-base"
+                    class="border border-base p-2 rounded w-full max-w-fit bg-gray-100 text-base"
                     v-model="codeProduct"
                     disabled
                   />
                 </div>
-                <div class="flex flex-wrap gap-4">
-                  <input
-                    name="product_name"
-                    type="text"
-                    class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
-                    placeholder="Product Name"
-                    v-model="nameProduct"
-                  />
-                  <input
-                    name="product_description"
-                    type="text"
-                    class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
-                    placeholder="Description"
-                    v-model="descriptionProduct"
-                  />
-                  <input
-                    name="product_price"
-                    type="text"
-                    v-model="priceProduct"
-                    @input="handlePriceInput"
-                    class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
-                    placeholder="Price"
-                  />
-                  <input
-                    name="product_qty"
-                    type="number"
-                    class="border border-base p-2 rounded min-w-[250px] bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
-                    placeholder="Quantity"
-                    v-model="quantityProduct"
-                  />
+                <div class="flex flex-col flex-wrap gap-4 w-full">
+                  <div class="flex flex-col md:flex-row gap-4">
+                    <input
+                      name="product_name"
+                      type="text"
+                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      placeholder="Product Name"
+                      v-model="nameProduct"
+                    />
+                    <input
+                      name="product_description"
+                      type="text"
+                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      placeholder="Description"
+                      v-model="descriptionProduct"
+                    />
+                  </div>
+                  <div class="flex flex-col md:flex-row gap-4">
+                    <input
+                      name="product_price"
+                      type="text"
+                      v-model="priceProduct"
+                      @input="handlePriceInput"
+                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      placeholder="Price"
+                    />
+                    <input
+                      name="product_qty"
+                      type="number"
+                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      placeholder="Quantity"
+                      v-model="quantityProduct"
+                    />
+                  </div>
                 </div>
-                <button
-                  @click="postProduct"
-                  type="button"
-                  class="bg-sub text-white px-4 py-2 min-w-[250px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
-                >
-                  Add Product
-                </button>
               </div>
             </div>
-            <div class="self-end me-6"></div>
           </form>
         </div>
       </div>
@@ -411,7 +440,11 @@ function clearImageHandle() {
         :type="modalType"
         @confirm="deleteProduct"
       />
-      <loading-component :show="loadingShow" />
+      <Notivue v-slot="item">
+        <Notification :item="item" :theme="pastelTheme">
+          <NotificationProgress :item="item" />
+        </Notification>
+      </Notivue>
     </div>
   </div>
 </template>
