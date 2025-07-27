@@ -186,11 +186,15 @@ function handleFileChange(event) {
               <!-- Gambar Produk -->
               <img
                 id="product-image"
-                v-show="!imgPreview"
                 :src="imgUrl"
+                v-if="imgUrl"
                 alt="Product Image"
                 class="w-60 h-40 object-cover rounded-lg shadow-md"
               />
+              <div v-else class="w-60 h-40 object-cover rounded-lg shadow-md flex items-center justify-center bg-gray-200">
+                <i class="fa-solid fa-image text-4xl text-gray-500"></i>
+              </div>
+
 
               <!-- Input File -->
               <input

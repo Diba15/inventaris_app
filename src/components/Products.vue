@@ -115,19 +115,19 @@ function openDeleteModal(id, imageId) {
 
 <template>
   <div>
-    <div class="flex items-center px-4">
+    <div class="flex items-center px-4 ">
       <input
         type="text"
         id="searchProduct"
         placeholder="Search Product"
-        class="mb-2 px-2 py-1 rounded-l min-w-[250px] bg-white border-l border-t border-b border-black text-base focus:outline-none"
+        class="mb-2 px-2 py-1 rounded-l w-full max-w-[250px] bg-white border-l border-t border-b border-black text-base focus:outline-none"
         @input="handleSearch"
       />
       <i
         class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-black"
       ></i>
     </div>
-    <div class="product-grid">
+    <div class="product-grid overflow-x-auto">
       <table
         class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
       >
