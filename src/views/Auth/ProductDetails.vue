@@ -169,17 +169,17 @@ function handleFileChange(event) {
     <div v-if="product" class="mt-4">
       <form action="" @submit="updateProduct">
         <div class="flex flex-col gap-4 bg-white rounded shadow-lg">
-          <div class="p-4 bg-base text-white rounded-t flex justify-between items-center">
-            <h1 class="text-xl font-bold">Product Details</h1>
+          <div class="p-4 bg-base text-white rounded-t flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-xl font-bold self-start md:self-center">Product Details</h1>
             <button
               type="button"
-              class="bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
+              class="self-end-safe bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
               @click="updateProduct"
             >
               Save
             </button>
           </div>
-          <div class="flex flex-row p-4 gap-8 items-center">
+          <div class="flex flex-col md:flex-row p-4 gap-8">
             <!-- Image -->
             <div class="flex flex-col items-center gap-4 mb-6">
               <!-- Gambar Produk -->
@@ -215,46 +215,46 @@ function handleFileChange(event) {
               </button>
             </div>
             <!-- Form -->
-            <div class="flex flex-col gap-2 w-full">
-              <div class="flex flex-col gap-4 w-full">
+            <div class="flex flex-col w-full">
+              <div class="flex flex-col gap-2">
                 <!-- Product -->
-                <div class="flex flex-col gap-2">
-                  <div class="flex flex-col gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="flex flex-col gap-2 w-full">
                     <label for="product_name" class="font-semibold text-xs">Nama Produk</label>
                     <input
                       type="text"
                       id="product_name"
                       v-model="product.product_name"
-                      class="border border-base rounded p-2 bg-white min-w-sm"
+                      class="border border-base rounded p-2 bg-white w-full"
                     />
                   </div>
-                  <div class="flex flex-col gap-2">
+                  <div class="flex flex-col gap-2 w-full">
                     <label for="product_description" class="font-semibold text-xs">Deskripsi</label>
                     <textarea
                       id="product_description"
                       v-model="product.product_description"
-                      class="border border-base rounded p-2 bg-white min-w-sm"
+                      class="border border-base rounded p-2 bg-white w-full"
                     ></textarea>
                   </div>
                 </div>
                 <!-- Price -->
-                <div class="flex flex-col gap-2">
-                  <div class="flex flex-col gap-2">
+                <div class="flex flex-col md:flex-row gap-4">
+                  <div class="flex flex-col gap-2 w-full">
                     <label for="product_price" class="font-semibold text-xs">Harga</label>
                     <input
                       type="text"
                       id="product_price"
                       v-model="product.product_price"
-                      class="border border-base rounded p-2 bg-white min-w-sm"
+                      class="border border-base rounded p-2 bg-white w-full"
                     />
                   </div>
-                  <div class="flex flex-col gap-2">
+                  <div class="flex flex-col gap-2 w-full">
                     <label for="product_qty" class="font-semibold text-xs">Quantity</label>
                     <input
                       type="number"
                       id="product_qty"
                       v-model="product.product_qty"
-                      class="border border-base rounded p-2 bg-white min-w-sm"
+                      class="border border-base rounded p-2 bg-white w-full"
                     />
                   </div>
                 </div>
