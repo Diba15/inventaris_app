@@ -165,11 +165,11 @@ function handleFileChange(event) {
 </script>
 
 <template>
-  <main class="text-base">
+  <main class="text-base px-4">
     <div v-if="product" class="mt-4">
       <form action="" @submit="updateProduct">
-        <div class="flex flex-col gap-4 bg-white rounded shadow-lg">
-          <div class="p-4 bg-base text-white rounded-t flex flex-col md:flex-row justify-between items-center">
+        <div class="flex flex-col gap-4 bg-white rounded-xl shadow-lg">
+          <div class="p-4 bg-base text-white rounded-t-xl flex flex-col md:flex-row justify-between items-center">
             <h1 class="text-xl font-bold self-start md:self-center">Product Details</h1>
             <button
               type="button"
@@ -264,10 +264,10 @@ function handleFileChange(event) {
         </div>
       </form>
     </div>
-    <Notivue v-slot="item">
-      <Notification :item="item" :theme="pastelTheme">
-        <NotificationProgress :item="item" />
-      </Notification>
-    </Notivue>
   </main>
+  <Notivue v-slot="item">
+    <Notification :item="item" :theme="pastelTheme">
+      <NotificationProgress :item="item" />
+    </Notification>
+  </Notivue>
 </template>
