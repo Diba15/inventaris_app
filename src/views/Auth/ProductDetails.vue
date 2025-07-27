@@ -8,7 +8,6 @@ defineOptions({
 
 // ingin mengambil id dari route params
 import { useRoute } from 'vue-router'
-import LoadingComponent from '@/components/LoadingComponent.vue'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 
 const route = useRoute()
