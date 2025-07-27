@@ -1,35 +1,53 @@
-# inventaris-app
+# 📦 Inventaris App
 
-This template should help get you started developing with Vue 3 in Vite.
+A simple and responsive web-based inventory management application built with Vue.js and Tailwind CSS.  
+This application allows users to manage products efficiently with features such as image uploads, live updates, and mobile-friendly UI.
 
-## Recommended IDE Setup
+---
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 🚀 Features
 
-## Customize configuration
+- 🔍 View product details
+- 📝 Add, edit, and delete products
+- 🖼️ Upload and preview product images
+- 📱 Mobile-friendly layout using Tailwind
+- 🔔 Product update notifications
+- 💾 Local image preview before saving
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+---
 
-## Project Setup
+## 🛠️ Tech Stack
 
-```sh
-npm install
-```
+- **Frontend**: Vue 3 (Composition API), Tailwind CSS
+- **State Management**: Vue Reactive Refs
+- **Notifications**: Custom notification system (or external lib like Notivue)
+- **Tooling**: Vite, ESLint
 
-### Compile and Hot-Reload for Development
+---
 
-```sh
-npm run dev
-```
+## 📸 Screenshots
 
-### Compile and Minify for Production
+### **Dashboard**
+<img width="1853" height="981" alt="image" src="https://github.com/user-attachments/assets/16640d0d-3fd4-4c15-82ba-23c5fa607946" />
 
-```sh
-npm run build
-```
+### **Products**
+<img width="1854" height="982" alt="image" src="https://github.com/user-attachments/assets/4ea76e0f-46fe-434d-97fd-24f592e6953f" />
 
-### Lint with [ESLint](https://eslint.org/)
 
-```sh
-npm run lint
-```
+
+---
+
+## 📂 Project Structure
+
+```bash
+inventaris_app/
+├── public/                 # Static assets
+├── src/
+│   ├── components/         # Vue components
+│   ├── views/              # Page views (e.g., ProductDetails)
+│   ├── assets/             # Images, styles
+│   ├── routes/             # Routes for page
+│   ├── main.js             # App entry point
+│   └── ...                
+├── package.json
+└── README.md
