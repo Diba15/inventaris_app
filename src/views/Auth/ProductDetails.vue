@@ -8,6 +8,7 @@ defineOptions({
 
 // ingin mengambil id dari route params
 import { useRoute } from 'vue-router'
+import LoadingComponent from '@/components/LoadingComponent.vue'
 const route = useRoute()
 
 import { ref, onMounted, watch } from 'vue'
@@ -17,6 +18,8 @@ const product = ref(null)
 const isEditing = ref(false)
 const imgUrl = ref('')
 const imgPreview = ref(false)
+const imgInput = ref(null)
+// const isLoading = ref(false)
 
 const getProductDetails = async () => {
   const id = route.params.id
@@ -62,35 +65,78 @@ onMounted(() => {
   }
 })
 
+async function handleDeleteImage(id) {
+  await axios.delete(`${STRAPI_URL}/api/upload/files/${id}`)
+}
+
 const updateProduct = async () => {
   const id = route.params.id
   const updatedData = {
     product_name: product.value.product_name,
-    product_code: product.value.product_code,
     product_description: product.value.product_description,
     product_price: product.value.product_price,
     product_qty: product.value.product_qty,
   }
-  await axios.put(`${STRAPI_URL}/api/products/${id}`, { updatedData })
-  alert('Product updated successfully!')
-  getProductDetails() // Refresh the product details after update
-  const inputs = document.querySelectorAll('input')
-  const textarea = document.querySelector('textarea')
-  inputs.forEach((input) => {
-    input.setAttribute('readonly', 'readonly')
-    input.classList.remove('bg-white')
-    input.classList.add('bg-gray-100')
+
+  console.log(updatedData)
+  await axios.put(`${STRAPI_URL}/api/products/${id}`, {
+    data: {
+      ...updatedData,
+    },
   })
-  textarea.setAttribute('readonly', 'readonly')
-  textarea.classList.remove('bg-white')
-  textarea.classList.add('bg-gray-100')
-  inputs[0].focus() // Focus on the first input field after update
+
+  const deleteId = product.value.product_image?.id
+
+  const imgFile = imgInput.value ? imgInput.value.files[0] : null
+
+  console.log(imgFile)
+
+  if (imgFile) {
+    const formData = new FormData()
+    formData.append('files', imgFile)
+
+    const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
+    const uploadedFile = imageResponse.data[0]
+
+    // Coba berbagai cara mengambil ID
+    const imageId = uploadedFile.id || uploadedFile.documentId || uploadedFile.attributes?.id
+
+    if (uploadedFile) {
+      // 2. Update product dengan image ID
+      const updateResponse = await axios.put(`${STRAPI_URL}/api/products/${id}`, {
+        data: {
+          product_image: imageId,
+        },
+      })
+
+      console.log('Product updated with new image:', updateResponse.data)
+    }
+
+    if (deleteId) {
+      handleDeleteImage(deleteId) // Delete the old image if it exists
+    }
+  }
+
+  getProductDetails() // Refresh the product details after update
 }
 
 function handleChangeImage() {
   const imageInput = document.querySelector('#image-upload')
   if (imageInput) {
     imageInput.click()
+  }
+}
+
+function handleFileChange(event) {
+  const file = event.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    const img = document.querySelector('#product-image')
+    reader.onload = (e) => {
+      img.src = e.target.result
+      imgPreview.value = false // Hide the default image
+    }
+    reader.readAsDataURL(file)
   }
 }
 </script>
@@ -103,31 +149,42 @@ function handleChangeImage() {
           <div class="p-4 bg-base text-white rounded-t flex justify-between items-center">
             <h1 class="text-xl font-bold">Product Details</h1>
             <button
-                type="button"
-                class="bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
-                @click="isEditing = !isEditing"
-              >
-                Save
-              </button>
+              type="button"
+              class="bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
+              @click="updateProduct"
+            >
+              Save
+            </button>
           </div>
-          <div class="flex flex-row p-4 gap-4 items-center">
+          <div class="flex flex-row p-4 gap-8 items-center">
             <!-- Image -->
-            <div class="flex flex-col mb-4 justify-center items-center">
+            <div class="flex flex-col items-center gap-4 mb-6">
+              <!-- Gambar Produk -->
               <img
+                id="product-image"
                 v-show="!imgPreview"
                 :src="imgUrl"
-                alt=""
-                class="object-contain w-[300px] h-[300px] rounded-top"
+                alt="Product Image"
+                class="w-60 h-40 object-cover rounded-lg shadow-md"
               />
-              <input type="file" @change="imageUploadHandleClick" class="hidden" id="image-upload" />
+
+              <!-- Input File -->
+              <input
+                type="file"
+                @change="handleFileChange"
+                class="hidden"
+                id="image-upload"
+                accept="image/*"
+                ref="imgInput"
+              />
+
+              <!-- Tombol Ganti Gambar -->
               <button
-                v-on:click="handleChangeImage"
-                id="changeImage"
+                @click="handleChangeImage"
                 type="button"
-                class="mb-2 bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded-br rounded-bl w-sm h-sm"
-                @click="imageUploadHandleClick"
+                class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-200"
               >
-                Change Image
+                Ganti Gambar
               </button>
             </div>
             <!-- Form -->
@@ -136,7 +193,7 @@ function handleChangeImage() {
                 <!-- Product -->
                 <div class="flex flex-col gap-2">
                   <div class="flex flex-col gap-2">
-                    <label for="product_name" class="font-semibold">Nama Produk</label>
+                    <label for="product_name" class="font-semibold text-xs">Nama Produk</label>
                     <input
                       type="text"
                       id="product_name"
@@ -145,7 +202,7 @@ function handleChangeImage() {
                     />
                   </div>
                   <div class="flex flex-col gap-2">
-                    <label for="product_description" class="font-semibold">Deskripsi</label>
+                    <label for="product_description" class="font-semibold text-xs">Deskripsi</label>
                     <textarea
                       id="product_description"
                       v-model="product.product_description"
@@ -156,7 +213,7 @@ function handleChangeImage() {
                 <!-- Price -->
                 <div class="flex flex-col gap-2">
                   <div class="flex flex-col gap-2">
-                    <label for="product_price" class="font-semibold">Harga</label>
+                    <label for="product_price" class="font-semibold text-xs">Harga</label>
                     <input
                       type="text"
                       id="product_price"
@@ -165,7 +222,7 @@ function handleChangeImage() {
                     />
                   </div>
                   <div class="flex flex-col gap-2">
-                    <label for="product_qty" class="font-semibold">Quantity</label>
+                    <label for="product_qty" class="font-semibold text-xs">Quantity</label>
                     <input
                       type="number"
                       id="product_qty"
@@ -180,8 +237,6 @@ function handleChangeImage() {
         </div>
       </form>
     </div>
-    <div v-else class="mt-4">
-      <p>Loading product details...</p>
-    </div>
+    <LoadingComponent v-else />
   </main>
 </template>
