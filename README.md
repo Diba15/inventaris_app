@@ -19,8 +19,9 @@ This application allows users to manage products efficiently with features such 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Vue 3 (Composition API), Tailwind CSS
+- **Backend**: Strapi
 - **State Management**: Vue Reactive Refs
-- **Notifications**: Custom notification system (or external lib like Notivue)
+- **Notifications**: Notivue
 - **Tooling**: Vite, ESLint
 
 ---
