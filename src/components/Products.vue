@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, nextTick, watchEffect } from 'vue'
+import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 
 defineOptions({
   name: 'products_component',
@@ -29,8 +29,10 @@ const props = defineProps({
   },
 })
 
-watchEffect(() => {
-  totalData.value = props.totalDataOnMounted || filteredProducts.value.length
+onMounted(() => {
+  watchEffect(() => {
+    totalData.value = props.totalDataOnMounted || filteredProducts.value.length
+  })
 })
 
 const sortOrder = ref('asc')
