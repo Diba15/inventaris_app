@@ -5,6 +5,17 @@ defineOptions({
   name: 'products_component',
 })
 
+const props = defineProps({
+  products: {
+    type: Array,
+    default: () => [],
+  },
+  totalDataOnMounted: {
+    type: Number,
+    default: 0,
+  },
+})
+
 // Props for the component
 const emit = defineEmits(['deleteProduct', 'openDeleteModal'])
 const startPage = ref(0)
@@ -16,17 +27,6 @@ const startPageCount = computed(() => startPage.value * 5 + 1)
 const endPageCount = computed(() => {
   const end = startPage.value * 5 + 5
   return end > filteredProducts.value.length ? filteredProducts.value.length : end
-})
-
-const props = defineProps({
-  products: {
-    type: Array,
-    default: () => [],
-  },
-  totalDataOnMounted: {
-    type: Number,
-    default: 0,
-  },
 })
 
 onMounted(() => {
@@ -216,7 +216,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
       <span v-else class="text-orange-600"> No results found for "{{ searchTerm }}" </span>
     </div>
 
-    <div class="product-grid overflow-x-auto">
+    <div class="product-grid overflow-x-auto shadow-lg rounded-xl">
       <table
         class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
       >
