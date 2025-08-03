@@ -3,10 +3,16 @@ defineOptions({
   name: 'nav_component',
 })
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
 const isOpen = ref(false)
 const menuToggle = localStorage.getItem('menuToogle') || 'open'
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
+
+console.log('User:', user.value)
 
 const props = defineProps({
   toggleProfile: {
@@ -87,7 +93,7 @@ function toggleProfileMenu() {
           />
         </div>
         <div class="ml-3" :class="{ hidden: !isOpen }">
-          <p class="text-xs font-semibold">User Name</p>
+          <p class="text-xs font-semibold">{{ user.value?.username }}</p>
           <p class="text-xs text-secondary">User Role</p>
         </div>
         <button
