@@ -7,6 +7,7 @@ const STRAPI_URL = import.meta.env.VITE_STRAPI_URL || 'http://localhost:1337'
 // Simple reactive store
 const state = reactive({
   user: null,
+  role: null,
   token: localStorage.getItem('jwt') || null,
   isLoading: false,
   isInitialized: false // Track if auth has been initialized
@@ -61,6 +62,9 @@ export const useAuthStore = () => {
 
       state.token = jwt
       state.user = user
+      // Mendapatkan role user
+      state.role = user?.role;
+      console.log('Role user:', state.role);
 
       localStorage.setItem('jwt', jwt)
 
@@ -113,7 +117,7 @@ export const useAuthStore = () => {
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`
 
-      const response = await axios.get(`${STRAPI_URL}/api/users/me`)
+      const response = await axios.get(`${STRAPI_URL}/api/users/me?populate=role`)
       state.user = response.data
 
       return { success: true, user: state.user }
@@ -160,6 +164,7 @@ export const useAuthStore = () => {
   return {
     // State
     user: computed(() => state.user),
+    role: computed(() => state.role),
     token: computed(() => state.token),
     isLoading: computed(() => state.isLoading),
     isInitialized: computed(() => state.isInitialized),

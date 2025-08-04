@@ -11,6 +11,11 @@ const isOpen = ref(false)
 const menuToggle = localStorage.getItem('menuToogle') || 'open'
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
+const role = computed(() => authStore.role)
+let menuItems = []
+
+// Computed properties
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 console.log('User:', user.value)
 
@@ -36,14 +41,21 @@ const toggleMenu = () => {
   }
 }
 
-const menuItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
-  { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
-  { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
-  { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
-  { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
-  { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
-]
+if (isAuthenticated.value.value) {
+  menuItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+    { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
+    { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
+    { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
+    { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
+    { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
+  ]
+} else {
+  menuItems = [
+    { name: 'Home', path: '/', icon: 'fa-solid fa-house' },
+    { name: 'About', path: '/about', icon: 'fa-solid fa-info-circle' },
+  ]
+}
 
 const emit = defineEmits(['toggleProfileMenu'])
 
@@ -84,7 +96,12 @@ function toggleProfileMenu() {
     </div>
 
     <div>
-      <div id="user" class="flex items-center justify-between mt-auto" @click="toggleProfileMenu">
+      <div
+        v-if="isAuthenticated.value"
+        id="user"
+        class="flex items-center justify-between mt-auto"
+        @click="toggleProfileMenu"
+      >
         <div id="user_img">
           <img
             src="https://ui-avatars.com/api/?name=User&background=random&size=30"
@@ -94,7 +111,7 @@ function toggleProfileMenu() {
         </div>
         <div class="ml-3" :class="{ hidden: !isOpen }">
           <p class="text-xs font-semibold">{{ user.value?.username }}</p>
-          <p class="text-xs text-secondary">User Role</p>
+          <p class="text-xs text-secondary">{{ role ?? 'Auth User' }}</p>
         </div>
         <button
           :class="{ hidden: !isOpen }"
@@ -102,6 +119,15 @@ function toggleProfileMenu() {
         >
           <i class="fa-solid fa-chevron-up"></i>
         </button>
+      </div>
+      <div v-else class="mt-auto text-center">
+        <RouterLink
+          to="/login"
+          class="text-sm text-secondary hover:font-bold transition-colors cursor-pointer"
+          :class="{ 'flex items-center justify-center gap-2': isOpen, 'block': !isOpen }"
+        >
+          <i class="fa-solid fa-right-to-bracket"></i> Login
+        </RouterLink>
       </div>
     </div>
   </nav>
