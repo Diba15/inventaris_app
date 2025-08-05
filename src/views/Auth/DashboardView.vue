@@ -3,9 +3,13 @@ defineOptions({
   name: 'DashboardView',
 })
 
-import { reactive, nextTick } from 'vue'
+import { reactive, nextTick, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import StatCard from '@/components/StatCard.vue'
 
 let chartRef = null
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
 const state = reactive({
   isDropdownOpen: false,
   selectedFilter: { label: 'Yearly', value: 'yearly' }, // Default to Yearly
@@ -100,6 +104,12 @@ const changeFilter = (filter) => {
   state.isDropdownOpen = false
   updateChartData(filter)
 }
+
+const statData = [
+  { title: 'Total Revenue', value: '1,234', icon: 'fa-chart-pie', color: 'bg-sub', textColor: 'text-sub' },
+  { title: 'Total Receipt', value: '1,234', icon: 'fa-receipt', color: 'bg-purple-500', textColor: 'text-purple-500' },
+  { title: 'Customers', value: '1,234', icon: 'fa-users', color: 'bg-blue-500', textColor: 'text-blue-500' },
+]
 
 const updateChartData = (filter) => {
   let categories = []
@@ -229,35 +239,25 @@ updateChartData(state.selectedFilter)
       </div>
     </div>
 
+    <div class="px-4 flex gap-2">
+      <div class="w-2 bg-sub min-h-[2px] rounded"></div>
+      <div class="flex flex-col text-2xl text-base">
+        <h1 class="flex flex-col">Welcome</h1>
+        <span class="font-bold">{{ user.value?.username }}</span>
+      </div>
+    </div>
+
     <!-- Main Content -->
     <div class="flex flex-col md:flex-row gap-4 w-full mt-5 px-4">
-      <div
-        class="flex justify-between items-center w-full text-base bg-white p-4 shadow rounded-md"
-      >
-        <div class="flex flex-col justify-between min-h-[150px]">
-          <div class="text-base font-bold">Total Revenue</div>
-          <div class="text-2xl font-bold">1,234</div>
-        </div>
-        <div><i class="fa-solid fa-chart-pie text-[100px]"></i></div>
-      </div>
-      <div
-        class="flex justify-between items-center w-full text-base bg-white p-4 shadow rounded-md"
-      >
-        <div class="flex flex-col justify-between min-h-[150px]">
-          <div class="text-base font-bold">Total Receipt</div>
-          <div class="text-2xl font-bold">1,234</div>
-        </div>
-        <div><i class="fa-solid fa-receipt text-[100px]"></i></div>
-      </div>
-      <div
-        class="flex justify-between items-center w-full text-base bg-white p-4 shadow rounded-md"
-      >
-        <div class="flex flex-col justify-between min-h-[150px]">
-          <div class="text-base font-bold">Customers</div>
-          <div class="text-2xl font-bold">1,234</div>
-        </div>
-        <div><i class="fa-solid fa-users text-[100px]"></i></div>
-      </div>
+      <StatCard
+        v-for="stat in statData"
+        :key="stat.title"
+        :title="stat.title"
+        :value="stat.value"
+        :icon="stat.icon"
+        :color="stat.color"
+        :textColor="stat.textColor"
+      />
     </div>
 
     <!-- Chart -->
@@ -265,7 +265,10 @@ updateChartData(state.selectedFilter)
       <div class="flex justify-between items-center px-4 pt-4 bg-base rounded-t-md">
         <h2 class="text-xl font-bold mb-4 text-white">Revenue</h2>
         <div>
-          <button class="flex gap-2 items-center font-bold cursor-pointer text-white" @click="toggleDropdown">
+          <button
+            class="flex gap-2 items-center font-bold cursor-pointer text-white"
+            @click="toggleDropdown"
+          >
             {{ state.selectedFilter.label }} <i class="fa-solid fa-chevron-down"></i>
           </button>
           <div class="relative inline-block">

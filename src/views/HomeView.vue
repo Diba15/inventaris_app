@@ -5,7 +5,7 @@ defineOptions({
 </script>
 
 <template>
-  <main>
-    <h1 class="text-black">Home View</h1>
+  <main class="flex flex-col">
+    <h1 class="text-base font-bold text-2xl p-4 bg-sub rounded-xl">Home</h1>
   </main>
 </template>
