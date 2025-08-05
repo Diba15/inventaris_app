@@ -193,19 +193,24 @@ onUnmounted(() => {
 
 <style scoped>
 /* Slide transition animations */
-.slide-enter-active,
+.slide-enter-active {
+  animation: slideIn 0.8s ease-in-out;
+}
+
 .slide-leave-active {
-  transition: all 0.5s ease-in-out;
+  animation: slideIn 0.8s ease-in-out reverse;
 }
 
-.slide-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.slide-leave-to {
-  opacity: 0;
-  transform: translateX(-100%);
+@keyframes slideIn {
+  0% {
+    transform: translateX(100%);
+  }
+  50% {
+    transform: translateX(-10%);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 
 /* Custom scrollbar untuk thumbnail navigation */
