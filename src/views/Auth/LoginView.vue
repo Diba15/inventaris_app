@@ -10,29 +10,24 @@
         </p>
       </div>
       <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-        <div class="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label for="email" class="sr-only">Email address</label>
-            <input
-              id="email"
-              v-model="form.email"
-              type="email"
-              required
-              class="relative block w-full px-3 py-2 border border-gray-300 rounded-t-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10"
-              placeholder="Email address"
-            />
-          </div>
-          <div>
-            <label for="password" class="sr-only">Password</label>
-            <input
-              id="password"
-              v-model="form.password"
-              type="password"
-              required
-              class="relative block w-full px-3 py-2 border border-gray-300 rounded-b-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10"
-              placeholder="Password"
-            />
-          </div>
+        <div class="space-y-4">
+          <FloatingInput
+            id="email"
+            label="Email Address"
+            type="email"
+            v-model="form.email"
+            :required="true"
+            :error-message="fieldErrors.email"
+          />
+
+          <FloatingInput
+            id="password"
+            label="Password"
+            type="password"
+            v-model="form.password"
+            :required="true"
+            :error-message="fieldErrors.password"
+          />
         </div>
 
         <div
@@ -75,10 +70,10 @@
           </button>
         </div>
 
-        <div class="flex items-center justify-between">
+        <div class="relative bottom-0 w-fit mx-auto">
           <router-link
             to="/"
-            class="text-indigo-600 hover:text-indigo-500 text-sm flex items-center gap-1"
+            class="text-white hover:text-sub text-sm flex items-center gap-1"
           >
             <i class="fa-solid fa-arrow-left"></i> Back to Home
           </router-link>
@@ -92,6 +87,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import FloatingInput from '@/components/FloatingInput.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -103,10 +99,46 @@ const form = ref({
 
 const error = ref('')
 const isLoading = ref(false)
+const fieldErrors = ref({
+  email: '',
+  password: ''
+})
+
+const validateForm = () => {
+  fieldErrors.value = {
+    email: '',
+    password: ''
+  }
+
+  let isValid = true
+
+  if (!form.value.email) {
+    fieldErrors.value.email = 'Email is required'
+    isValid = false
+  } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
+    fieldErrors.value.email = 'Please enter a valid email address'
+    isValid = false
+  }
+
+  if (!form.value.password) {
+    fieldErrors.value.password = 'Password is required'
+    isValid = false
+  } else if (form.value.password.length < 6) {
+    fieldErrors.value.password = 'Password must be at least 6 characters'
+    isValid = false
+  }
+
+  return isValid
+}
 
 const handleLogin = async () => {
   try {
     error.value = ''
+
+    if (!validateForm()) {
+      return
+    }
+
     isLoading.value = true
 
     await authStore.login(form.value)

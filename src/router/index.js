@@ -26,16 +26,6 @@ const router = createRouter({
         requiresGuest: true // Public page
       }
     },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
-      meta: {
-        title: 'About',
-        description: 'Learn more about the Inventaris App',
-        requiresGuest: true // Public page
-      }
-    },
     // Auth routes
     {
       path: '/login',

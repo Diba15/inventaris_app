@@ -53,7 +53,6 @@ if (isAuthenticated.value.value) {
 } else {
   menuItems = [
     { name: 'Home', path: '/', icon: 'fa-solid fa-house' },
-    { name: 'About', path: '/about', icon: 'fa-solid fa-info-circle' },
   ]
 }
 
