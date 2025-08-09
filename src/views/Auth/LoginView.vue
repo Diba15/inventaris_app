@@ -1,3 +1,72 @@
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../../stores/auth'
+import FloatingInput from '@/components/FloatingInput.vue'
+
+const router = useRouter()
+const authStore = useAuthStore()
+
+const form = ref({
+  email: '',
+  password: '',
+})
+
+const error = ref('')
+const isLoading = ref(false)
+const fieldErrors = ref({
+  email: '',
+  password: ''
+})
+
+const validateForm = () => {
+  fieldErrors.value = {
+    email: '',
+    password: ''
+  }
+
+  let isValid = true
+
+  if (!form.value.email) {
+    fieldErrors.value.email = 'Email is required'
+    isValid = false
+  } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
+    fieldErrors.value.email = 'Please enter a valid email address'
+    isValid = false
+  }
+
+  if (!form.value.password) {
+    fieldErrors.value.password = 'Password is required'
+    isValid = false
+  } else if (form.value.password.length < 6) {
+    fieldErrors.value.password = 'Password must be at least 6 characters'
+    isValid = false
+  }
+
+  return isValid
+}
+
+const handleLogin = async () => {
+  try {
+    error.value = ''
+
+    if (!validateForm()) {
+      return
+    }
+
+    isLoading.value = true
+
+    await authStore.login(form.value)
+    router.push('/dashboard')
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    isLoading.value = false
+  }
+}
+</script>
+
+
 <template>
   <div
     class="min-h-screen flex items-center justify-center bg-secondary py-12 px-4 sm:px-6 lg:px-8"
@@ -81,72 +150,10 @@
       </form>
     </div>
   </div>
+
+  <div class="absolute flex flex-col gap-2 text-gray-400 top-5 left-5">
+    <h1 class="text-2xl font-bold ">Guest Account</h1>
+    <p>Email: guest@email.com</p>
+    <p>Password: guest123</p>
+  </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../stores/auth'
-import FloatingInput from '@/components/FloatingInput.vue'
-
-const router = useRouter()
-const authStore = useAuthStore()
-
-const form = ref({
-  email: '',
-  password: '',
-})
-
-const error = ref('')
-const isLoading = ref(false)
-const fieldErrors = ref({
-  email: '',
-  password: ''
-})
-
-const validateForm = () => {
-  fieldErrors.value = {
-    email: '',
-    password: ''
-  }
-
-  let isValid = true
-
-  if (!form.value.email) {
-    fieldErrors.value.email = 'Email is required'
-    isValid = false
-  } else if (!/\S+@\S+\.\S+/.test(form.value.email)) {
-    fieldErrors.value.email = 'Please enter a valid email address'
-    isValid = false
-  }
-
-  if (!form.value.password) {
-    fieldErrors.value.password = 'Password is required'
-    isValid = false
-  } else if (form.value.password.length < 6) {
-    fieldErrors.value.password = 'Password must be at least 6 characters'
-    isValid = false
-  }
-
-  return isValid
-}
-
-const handleLogin = async () => {
-  try {
-    error.value = ''
-
-    if (!validateForm()) {
-      return
-    }
-
-    isLoading.value = true
-
-    await authStore.login(form.value)
-    router.push('/dashboard')
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    isLoading.value = false
-  }
-}
-</script>
