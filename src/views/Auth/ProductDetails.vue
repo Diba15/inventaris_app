@@ -9,14 +9,14 @@ defineOptions({
 // ingin mengambil id dari route params
 import { useRoute } from 'vue-router'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
+import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 
 const route = useRoute()
 
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 const product = ref(null)
-const isEditing = ref(false)
 const imgUrl = ref('')
 const imgPreview = ref(false)
 const imgInput = ref(null)
@@ -31,34 +31,6 @@ const getProductDetails = async () => {
 
 onMounted(() => {
   getProductDetails()
-  watch(isEditing, (val) => {
-    const inputs = document.querySelectorAll('input')
-    const textarea = document.querySelector('textarea')
-    if (val) {
-      inputs.forEach((input) => {
-        input.removeAttribute('readonly')
-        input.classList.remove('bg-gray-100')
-        input.classList.add('bg-white')
-      })
-      if (inputs.length > 0) {
-        inputs[0].focus()
-        inputs[0].select()
-      }
-      textarea.removeAttribute('readonly')
-      textarea.classList.remove('bg-gray-100')
-      textarea.classList.add('bg-white')
-    } else {
-      inputs.forEach((input) => {
-        input.setAttribute('readonly', 'readonly')
-        input.classList.remove('bg-white')
-        input.classList.add('bg-gray-100')
-      })
-      textarea.setAttribute('readonly', 'readonly')
-      textarea.classList.remove('bg-white')
-      textarea.classList.add('bg-gray-100')
-    }
-  })
-
   if (imgUrl.value) {
     imgPreview.value = true
   } else {
@@ -72,20 +44,35 @@ async function handleDeleteImage(id) {
 
 const updateProduct = async () => {
   const id = route.params.id
+
+  const price = product.value.product_price.toString()
+
   const updatedData = {
     product_name: product.value.product_name,
     product_description: product.value.product_description,
-    product_price: product.value.product_price,
+    product_price: Number(price.replace(/[^0-9]/g, '')),
     product_qty: product.value.product_qty,
   }
-
-  console.log(updatedData)
 
   const notif = push.promise({
     type: 'info',
     message: 'Updating product...',
     duration: 0,
   })
+
+  if (
+    !updatedData.product_name ||
+    !updatedData.product_description ||
+    !updatedData.product_price ||
+    !updatedData.product_qty
+  ) {
+    notif.reject({
+      type: 'error',
+      message: 'Please fill in all required fields.',
+      duration: 3000,
+    })
+    return
+  }
 
   try {
     await axios.put(`${STRAPI_URL}/api/products/${id}`, {
@@ -162,6 +149,15 @@ function handleFileChange(event) {
     reader.readAsDataURL(file)
   }
 }
+
+function handlePriceInput(event) {
+  const input = event.target.value
+  const numericValue = input.replace(/[^0-9]/g, '')
+  // Format with dot as thousand separator, no "Rp"
+  product.value.product_price = numericValue
+    ? numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    : ''
+}
 </script>
 
 <template>
@@ -169,7 +165,9 @@ function handleFileChange(event) {
     <div v-if="product" class="mt-4">
       <form action="" @submit="updateProduct">
         <div class="flex flex-col gap-4 bg-white rounded-xl shadow-lg">
-          <div class="p-4 bg-base text-white rounded-t-xl flex flex-col md:flex-row justify-between items-center">
+          <div
+            class="p-4 bg-base text-white rounded-t-xl flex flex-col md:flex-row justify-between items-center"
+          >
             <h1 class="text-xl font-bold self-start md:self-center">Product Details</h1>
             <button
               type="button"
@@ -190,10 +188,12 @@ function handleFileChange(event) {
                 alt="Product Image"
                 class="w-60 h-40 object-cover rounded-lg shadow-md"
               />
-              <div v-else class="w-60 h-40 object-cover rounded-lg shadow-md flex items-center justify-center bg-gray-200">
+              <div
+                v-else
+                class="w-60 h-40 object-cover rounded-lg shadow-md flex items-center justify-center bg-gray-200"
+              >
                 <i class="fa-solid fa-image text-4xl text-gray-500"></i>
               </div>
-
 
               <!-- Input File -->
               <input
@@ -216,47 +216,49 @@ function handleFileChange(event) {
             </div>
             <!-- Form -->
             <div class="flex flex-col w-full">
-              <div class="flex flex-col gap-2">
+              <div class="flex flex-col gap-4">
                 <!-- Product -->
                 <div class="flex flex-col md:flex-row gap-4">
-                  <div class="flex flex-col gap-2 w-full">
-                    <label for="product_name" class="font-semibold text-xs">Nama Produk</label>
-                    <input
-                      type="text"
-                      id="product_name"
-                      v-model="product.product_name"
-                      class="border border-base rounded p-2 bg-white w-full"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2 w-full">
-                    <label for="product_description" class="font-semibold text-xs">Deskripsi</label>
-                    <textarea
-                      id="product_description"
-                      v-model="product.product_description"
-                      class="border border-base rounded p-2 bg-white w-full"
-                    ></textarea>
-                  </div>
+                  <StandardFloatingInput
+                    id="product_name"
+                    type="text"
+                    name="product_name"
+                    placeholder="Product Name"
+                    label="Product Name"
+                    v-model="product.product_name"
+                    class="max-w-md w-full"
+                  />
+                  <StandardFloatingInput
+                    id="product_description"
+                    type="text"
+                    name="product_description"
+                    placeholder="Description"
+                    label="Description"
+                    v-model="product.product_description"
+                    class="max-w-md w-full"
+                  />
                 </div>
                 <!-- Price -->
                 <div class="flex flex-col md:flex-row gap-4">
-                  <div class="flex flex-col gap-2 w-full">
-                    <label for="product_price" class="font-semibold text-xs">Harga</label>
-                    <input
-                      type="text"
-                      id="product_price"
-                      v-model="product.product_price"
-                      class="border border-base rounded p-2 bg-white w-full"
-                    />
-                  </div>
-                  <div class="flex flex-col gap-2 w-full">
-                    <label for="product_qty" class="font-semibold text-xs">Quantity</label>
-                    <input
-                      type="number"
-                      id="product_qty"
-                      v-model="product.product_qty"
-                      class="border border-base rounded p-2 bg-white w-full"
-                    />
-                  </div>
+                  <StandardFloatingInput
+                    id="product_price"
+                    type="text"
+                    name="product_price"
+                    placeholder="Price"
+                    label="Price"
+                    v-model="product.product_price"
+                    class="max-w-md w-full"
+                    @handlePriceInput="handlePriceInput"
+                  />
+                  <StandardFloatingInput
+                    id="product_qty"
+                    type="number"
+                    name="product_qty"
+                    placeholder="Quantity"
+                    label="Quantity"
+                    v-model="product.product_qty"
+                    class="max-w-md w-full"
+                  />
                 </div>
               </div>
             </div>

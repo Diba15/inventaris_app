@@ -1,6 +1,8 @@
 <script setup>
 import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
+import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
+import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
 import { onMounted, ref, watchEffect } from 'vue'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import axios from 'axios'
@@ -303,7 +305,9 @@ function clearImageHandle() {
   <div class="px-4">
     <div class="mt-4">
       <div class="bg-white rounded-xl mb-4 shadow">
-        <div class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row">
+        <div
+          class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        >
           <h1 class="text-xl font-bold self-start md:self-center">Add Products</h1>
           <button
             @click="postProduct"
@@ -362,22 +366,18 @@ function clearImageHandle() {
               </div>
               <div class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col md:flex-row gap-4">
-                  <select
-                    name="product_category"
-                    id=""
+                  <AutoCompleteInput
+                    id="product_category"
+                    label="Select Category"
+                    placeholder="Type to search categories..."
                     v-model="selectedCategory"
-                    class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Select Category</option>
-                    <option
-                      v-for="category in categories"
-                      :key="category.id"
-                      :value="category.category"
-                    >
-                      {{ category.category }}
-                    </option>
-                  </select>
+                    :options="categories"
+                    option-label="category"
+                    option-value="category"
+                    :required="true"
+                    class="w-full max-w-md"
+                    @select="handleCategorySelect"
+                  />
                   <input
                     name="product_code"
                     type="text"
@@ -388,36 +388,44 @@ function clearImageHandle() {
                 </div>
                 <div class="flex flex-col flex-wrap gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
-                    <input
+                    <StandardFloatingInput
+                      id="product_name"
+                      type="text"
                       name="product_name"
-                      type="text"
-                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
                       placeholder="Product Name"
+                      label="Product Name"
                       v-model="nameProduct"
+                      class="max-w-md w-full"
                     />
-                    <input
-                      name="product_description"
+                    <StandardFloatingInput
+                      id="product_description"
                       type="text"
-                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      name="product_description"
                       placeholder="Description"
+                      label="Description"
                       v-model="descriptionProduct"
+                      class="max-w-md w-full"
                     />
                   </div>
                   <div class="flex flex-col md:flex-row gap-4">
-                    <input
-                      name="product_price"
+                    <StandardFloatingInput
+                      id="product_price"
                       type="text"
-                      v-model="priceProduct"
-                      @input="handlePriceInput"
-                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      name="product_price"
                       placeholder="Price"
+                      label="Price"
+                      v-model="priceProduct"
+                      class="max-w-md w-full"
+                      @handlePriceInput="handlePriceInput"
                     />
-                    <input
-                      name="product_qty"
+                    <StandardFloatingInput
+                      id="product_qty"
                       type="number"
-                      class="border border-base p-2 rounded w-full max-w-md bg-white text-base focus:outline-base-500 focus:outline-offset-2 focus:outline-2 transition-all duration-300"
+                      name="product_qty"
                       placeholder="Quantity"
+                      label="Quantity"
                       v-model="quantityProduct"
+                      class="max-w-md w-full"
                     />
                   </div>
                 </div>
