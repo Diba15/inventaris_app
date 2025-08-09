@@ -18,6 +18,7 @@
     "@fortawesome/vue-fontawesome": "^3.0.8",
     "@headlessui/vue": "^1.7.23",
     "@tailwindcss/vite": "^4.1.11",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.10.0",
     "highcharts": "^12.3.0",
     "highcharts-vue": "^2.0.1",

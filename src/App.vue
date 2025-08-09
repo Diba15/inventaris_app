@@ -4,6 +4,7 @@ import nav_component from './components/Navigation.vue'
 import LoadingComponent from './components/LoadingComponent.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from './stores/auth'
+import { Analytics } from '@vercel/analytics/nuxt'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,6 +90,7 @@ watch(
 </script>
 
 <template>
+  <Analytics />
   <!-- Loading Screen - Show while auth is being initialized -->
   <div v-if="!appReady" class="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
     <LoadingComponent />
