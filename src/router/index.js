@@ -1,3 +1,4 @@
+// router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import DashboardView from '@/views/Auth/DashboardView.vue'
@@ -6,6 +7,10 @@ import SuppliersView from '@/views/Auth/SuppliersView.vue'
 import WarehouseView from '@/views/Auth/WarehouseView.vue'
 import ReportsView from '@/views/Auth/ReportsView.vue'
 import UsersVue from '@/views/Auth/UsersVue.vue'
+
+// Auth views
+import LoginView from '@/views/Auth/LoginView.vue'
+import RegisterView from '@/views/Auth/RegisterView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,20 +23,31 @@ const router = createRouter({
       meta: {
         title: 'Home',
         description: 'Welcome to the Inventaris App',
+        requiresGuest: true // Public page
+      }
+    },
+    // Auth routes
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView,
+      meta: {
+        title: 'Login',
+        description: 'Sign in to your account',
+        requiresGuest: true
       }
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
       meta: {
-        title: 'About',
-        description: 'Learn more about the Inventaris App',
+        title: 'Register',
+        description: 'Create new account',
+        requiresGuest: true
       }
     },
+    // Protected routes
     {
       path: '/dashboard',
       name: 'dashboard',
@@ -39,6 +55,7 @@ const router = createRouter({
       meta: {
         title: 'Dashboard',
         description: 'Overview of your inventory management',
+        requiresAuth: true
       }
     },
     {
@@ -48,6 +65,7 @@ const router = createRouter({
       meta: {
         title: 'Products',
         description: 'Manage your products efficiently',
+        requiresAuth: true
       }
     },
     {
@@ -57,6 +75,7 @@ const router = createRouter({
       meta: {
         title: 'Edit Product',
         description: 'Edit product details',
+        requiresAuth: true
       }
     },
     {
@@ -66,6 +85,7 @@ const router = createRouter({
       meta: {
         title: 'Suppliers',
         description: 'Manage your suppliers',
+        requiresAuth: true
       }
     },
     {
@@ -75,6 +95,7 @@ const router = createRouter({
       meta: {
         title: 'Warehouse',
         description: 'Manage your warehouse inventory',
+        requiresAuth: true
       }
     },
     {
@@ -84,6 +105,7 @@ const router = createRouter({
       meta: {
         title: 'Reports',
         description: 'Generate and view reports',
+        requiresAuth: true
       }
     },
     {
@@ -93,14 +115,42 @@ const router = createRouter({
       meta: {
         title: 'Users',
         description: 'Manage users and permissions',
+        requiresAuth: true
       }
     }
   ],
 })
 
-router.beforeEach((to, from, next) => {
+// Navigation guards
+router.beforeEach(async (to, from, next) => {
   document.title = to.meta.title || 'Inventaris App'
-  next()
+
+  // Import auth store dynamically to avoid circular dependency
+  const { useAuthStore } = await import('../stores/auth')
+  const authStore = useAuthStore()
+
+  // Wait for auth to be initialized (handled by App.vue)
+  if (!authStore.isInitialized.value) {
+    // If not initialized yet, let it pass and App.vue will handle the loading
+    next()
+    return
+  }
+
+  const isAuthenticated = authStore.isAuthenticated.value
+  const requiresAuth = to.meta.requiresAuth
+  const requiresGuest = to.meta.requiresGuest
+
+  // Check if route requires authentication
+  if (requiresAuth && !isAuthenticated) {
+    next('/login')
+  }
+  // Check if route is for guests only (like login/register) but user is authenticated
+  else if (requiresGuest && isAuthenticated && ['/login', '/register'].includes(to.path)) {
+    next('/dashboard')
+  }
+  else {
+    next()
+  }
 })
 
 export default router
