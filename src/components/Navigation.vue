@@ -103,7 +103,7 @@ function toggleProfileMenu() {
       >
         <div id="user_img">
           <img
-            src="https://ui-avatars.com/api/?name=User&background=random&size=30"
+            :src="`https://ui-avatars.com/api/?name=${user.value?.username}&background=random&size=30`"
             alt="User Avatar"
             class="rounded-full"
           />
