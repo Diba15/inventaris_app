@@ -1,6 +1,7 @@
 <script setup>
 import { RouterView, useRouter, useRoute } from 'vue-router'
 import nav_component from './components/Navigation.vue'
+import MobileNavigation from './components/MobileNavigation.vue'
 import LoadingComponent from './components/LoadingComponent.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from './stores/auth'
@@ -107,6 +108,12 @@ watch(
     <div v-else-if="isAuthenticated" class="flex gap-5 h-screen">
       <nav_component
         class="hidden md:flex sticky top-0 h-screen"
+        @toggleProfileMenu="toggleProfileMenu"
+        :toggle-profile="profileToggle"
+      />
+
+      <MobileNavigation
+        class="md:hidden"
         @toggleProfileMenu="toggleProfileMenu"
         :toggle-profile="profileToggle"
       />

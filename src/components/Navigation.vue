@@ -60,7 +60,6 @@ const emit = defineEmits(['toggleProfileMenu'])
 
 function toggleProfileMenu() {
   emit('toggleProfileMenu')
-  console.log('Profile menu toggled')
 }
 </script>
 
