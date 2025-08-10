@@ -64,7 +64,6 @@ export const useAuthStore = () => {
       state.user = user
       // Mendapatkan role user
       state.role = user?.role;
-      console.log('Role user:', state.role);
 
       localStorage.setItem('jwt', jwt)
 
@@ -121,8 +120,6 @@ export const useAuthStore = () => {
       const test = await axios.get(`${STRAPI_URL}/api/users/${response.data.id}?populate=*`)
       state.user = response.data
       state.role = test.data?.role?.name
-
-      console.log("Test: ", test.data)
 
       return { success: true, user: state.user }
     } catch (error) {
