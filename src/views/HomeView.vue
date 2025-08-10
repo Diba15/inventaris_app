@@ -92,7 +92,7 @@ const featureList = [
     ></div>
     <div class="w-3/4 h-1 bg-yellow-300 rounded-full transform skew-x-6 opacity-50"></div>
   </div>
-  <div class="max-w-full mx-20 mb-10 rounded-xl flex flex-row items-center justify-between">
+  <div class="max-w-full mx-4 md:mx-20 mb-10 rounded-xl flex flex-col-reverse md:flex-row items-center justify-between">
     <div class="max-w-lg my-8 p-4 flex flex-col items-center">
       <ul class="mt-4 space-y-8">
         <li class="flex items-center">

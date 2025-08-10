@@ -117,8 +117,12 @@ export const useAuthStore = () => {
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${state.token}`
 
-      const response = await axios.get(`${STRAPI_URL}/api/users/me?populate=role`)
+      const response = await axios.get(`${STRAPI_URL}/api/users/me`)
+      const test = await axios.get(`${STRAPI_URL}/api/users/${response.data.id}?populate=*`)
       state.user = response.data
+      state.role = test.data?.role?.name
+
+      console.log("Test: ", test.data)
 
       return { success: true, user: state.user }
     } catch (error) {

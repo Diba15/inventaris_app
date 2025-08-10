@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 const isOpen = ref(false)
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
+const role = computed(() => authStore.role)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const emit = defineEmits(['toggleProfileMenu'])
