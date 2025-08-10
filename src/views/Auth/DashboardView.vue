@@ -3,11 +3,12 @@ defineOptions({
   name: 'DashboardView',
 })
 
-import { reactive, nextTick, computed } from 'vue'
+import { reactive, nextTick, computed, ref } from 'vue' // tambahkan ref
 import { useAuthStore } from '@/stores/auth'
 import StatCard from '@/components/StatCard.vue'
 
-let chartRef = null
+// Ubah menjadi proper ref
+const chartRef = ref(null)
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 const state = reactive({
@@ -32,6 +33,10 @@ const state = reactive({
     lang: {
       decimalPoint: ',',
       thousandsSep: '.',
+    },
+    // Disable accessibility warning
+    accessibility: {
+      enabled: false
     },
     xAxis: {
       categories: [
@@ -96,7 +101,6 @@ const toggleDropdown = () => {
 
 const saveFilter = () => {
   localStorage.setItem('selectedFilter', JSON.stringify(state.selectedFilter))
-  console.log('Filter saved:', state.selectedFilter)
 }
 
 const changeFilter = (filter) => {
@@ -189,18 +193,12 @@ const updateChartData = (filter) => {
     },
   ]
 
-  console.log('Chart data updated:', {
-    categories,
-    data: dummyData,
-    name,
-  })
-
   saveFilter()
 
   // Use nextTick to ensure DOM is updated before accessing chart
   nextTick(() => {
-    if (chartRef && chartRef.chart) {
-      chartRef.chart.update({
+    if (chartRef.value && chartRef.value.chart) { // gunakan .value
+      chartRef.value.chart.update({
         xAxis: {
           categories: categories,
         },
@@ -211,7 +209,6 @@ const updateChartData = (filter) => {
           },
         ],
       })
-      console.log('Chart updated with new data')
     }
   })
 }

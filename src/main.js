@@ -7,7 +7,7 @@ import HighchartsVue from 'highcharts-vue'
 import * as Highcharts from "highcharts";
 import "highcharts/modules/stock";
 import { createNotivue } from 'notivue'
-
+import 'highcharts/modules/accessibility'
 import 'notivue/notification.css' // Only needed if using built-in notifications
 import 'notivue/animations.css' // Only needed if using built-in animations
 import 'notivue/notification-progress.css'
@@ -34,7 +34,6 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faChartBar } from '@fortawesome/free-regular-svg-icons'
 
 library.add(faChartBar)
-
 
 app.use(router)
 app.use(HighchartsVue)

@@ -11,16 +11,30 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 const emit = defineEmits(['toggleProfileMenu'])
 
-const menuItems = isAuthenticated.value.value
-  ? [
-      { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
-      { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
-      { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
-      { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
-      { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
-      { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
-    ]
-  : [{ name: 'Home', path: '/', icon: 'fa-solid fa-house' }]
+const menuItems = computed(() => {
+  if (isAuthenticated.value.value) {
+    if (role.value.value === 'Admin') {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+        { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
+        { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
+        { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
+        { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
+        { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
+      ]
+    } else if (role.value.value === 'Employee') {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+        { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
+      ]
+    } else {
+      // Default untuk authenticated user tanpa role atau role lainnya
+      return [{ name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' }]
+    }
+  } else {
+    return [{ name: 'Home', path: '/', icon: 'fa-solid fa-house' }]
+  }
+})
 
 function toggleMobileMenu() {
   isOpen.value = !isOpen.value

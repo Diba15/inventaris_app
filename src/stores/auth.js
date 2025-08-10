@@ -62,13 +62,20 @@ export const useAuthStore = () => {
 
       state.token = jwt
       state.user = user
-      // Mendapatkan role user
-      state.role = user?.role;
 
       localStorage.setItem('jwt', jwt)
 
       // Set default auth header for future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${jwt}`
+
+      try {
+        const userDetail = await axios.get(`${STRAPI_URL}/api/users/${user.id}?populate=*`)
+        state.role = userDetail.data?.role?.name
+      } catch (roleError) {
+        console.warn('Failed to fetch role:', roleError)
+        state.role = null
+      }
+
 
       return { success: true, user }
     } catch (error) {
