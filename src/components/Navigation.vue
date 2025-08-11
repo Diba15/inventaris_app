@@ -12,12 +12,33 @@ const menuToggle = localStorage.getItem('menuToogle') || 'open'
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 const role = computed(() => authStore.role)
-let menuItems = []
-
 // Computed properties
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
-console.log('User:', user.value)
+const menuItems = computed(() => {
+  if (isAuthenticated.value.value) {
+    if (role.value.value === 'Admin') {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+        { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
+        { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
+        { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
+        { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
+        { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
+      ]
+    } else if (role.value.value === 'Employee') {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+        { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
+      ]
+    } else {
+      // Default untuk authenticated user tanpa role atau role lainnya
+      return [{ name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' }]
+    }
+  } else {
+    return [{ name: 'Home', path: '/', icon: 'fa-solid fa-house' }]
+  }
+})
 
 const props = defineProps({
   toggleProfile: {
@@ -41,26 +62,10 @@ const toggleMenu = () => {
   }
 }
 
-if (isAuthenticated.value.value) {
-  menuItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
-    { name: 'Products', path: '/products', icon: 'fa-solid fa-box-open' },
-    { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
-    { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
-    { name: 'Reports', path: '/reports', icon: 'fa-solid fa-chart-line' },
-    { name: 'Users', path: '/users', icon: 'fa-solid fa-users' },
-  ]
-} else {
-  menuItems = [
-    { name: 'Home', path: '/', icon: 'fa-solid fa-house' },
-  ]
-}
-
 const emit = defineEmits(['toggleProfileMenu'])
 
 function toggleProfileMenu() {
   emit('toggleProfileMenu')
-  console.log('Profile menu toggled')
 }
 </script>
 
@@ -123,7 +128,7 @@ function toggleProfileMenu() {
         <RouterLink
           to="/login"
           class="text-sm text-secondary hover:font-bold transition-colors cursor-pointer"
-          :class="{ 'flex items-center justify-center gap-2': isOpen, 'block': !isOpen }"
+          :class="{ 'flex items-center justify-center gap-2': isOpen, block: !isOpen }"
         >
           <i class="fa-solid fa-right-to-bracket"></i> Login
         </RouterLink>

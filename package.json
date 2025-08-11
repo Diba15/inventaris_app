@@ -21,6 +21,7 @@
     "@vercel/analytics": "^1.5.0",
     "axios": "^1.10.0",
     "highcharts": "^12.3.0",
+    "highcharts-accessibility": "^0.1.7",
     "highcharts-vue": "^2.0.1",
     "notivue": "^2.4.5",
     "tailwindcss": "^4.1.11",
