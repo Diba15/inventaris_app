@@ -13,10 +13,10 @@ defineProps({
 
 <template>
   <div class="flex flex-col items-center">
-    <h1 class="text-base">{{ name }}</h1>
-    <div class="min-w-[200px] min-h-[200px] bg-gray-300 p-4">
+    <h1 class="text-base font-bold">{{ name }}</h1>
+    <div class="min-w-[200px] min-h-[200px] bg-gray-300 p-4 rounded-xl">
 
     </div>
-    <button class="text-base">Detail</button>
+    <button class="text-base font-bold">Detail</button>
   </div>
 </template>
