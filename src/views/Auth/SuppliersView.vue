@@ -272,81 +272,90 @@ function highlightSearchTerm(text, searchTerm) {
 
 <template>
   <div class="flex flex-col mx-4 my-10 gap-6">
-    <h1 class="text-base text-4xl font-bold">Suppliers</h1>
-    <!-- Enhanced Search Bar -->
-    <div class="flex items-center px-0 relative">
-      <input
-        type="text"
-        id="searchSupplier"
-        placeholder="Search suppliers by name, courier, cost, or description..."
-        class="mb-2 px-2 py-1 rounded-l w-full max-w-[500px] bg-white border-l border-t border-b border-black text-base focus:outline-none"
-        @input="handleSearch"
-        :value="searchTerm"
-      />
-
-      <!-- Clear search button -->
-      <button
-        v-if="isSearching"
-        @click="clearSearch"
-        class="mb-2 bg-white px-2 py-1 border-t border-b border-black text-gray-500 hover:text-gray-700 focus:outline-none"
-        title="Clear search"
-      >
-        <i class="fa fa-times"></i>
-      </button>
-
-      <!-- Search icon -->
-      <i
-        class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-black"
-      ></i>
-    </div>
-
-    <!-- Search Results Info for Cards -->
-    <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600">
-      <span v-if="filteredSuppliersForCards.length > 0">
-        Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
-      </span>
-      <span v-else class="text-orange-600"> No suppliers found for "{{ searchTerm }}" </span>
-    </div>
-
-    <!-- Enhanced Supplier Carousel -->
-    <div
-      id="supplier-carousel"
-      class="flex flex-nowrap gap-10 items-center overflow-x-scroll max-w-screen"
-    >
-      <!-- Show filtered suppliers in cards -->
-      <supplier-card
-        v-for="supplier in filteredSuppliersForCards"
-        :key="supplier.id"
-        :name="supplier.name"
-        :courier="supplier.courier_name"
-        :cost="supplier.total_cost"
-        :arrive-date="supplier.arrive_at"
-        class="supplier-card-item"
-        :class="{ highlighted: isSearching }"
-      />
-
-      <!-- No results state for cards -->
+    <div class="bg-white rounded-xl mb-4 shadow">
       <div
-        v-if="!filteredSuppliersForCards.length && isSearching"
-        class="flex flex-col items-center justify-center text-gray-400 min-w-[300px] p-8 border-2 border-dashed border-gray-300 rounded-lg"
+        class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
-        <i class="fa fa-search text-4xl mb-2"></i>
-        <p class="text-lg">No suppliers found</p>
-        <p class="text-sm">Try different search terms</p>
-        <button
-          @click="clearSearch"
-          class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
-          Clear Search
-        </button>
+        <h1 class="text-xl font-bold self-start md:self-center">Suppliers</h1>
       </div>
 
-      <!-- Add Supplier Button - always visible -->
-      <div
-        class="flex flex-col items-center text-base text-2xl font-extrabold cursor-pointer min-w-fit"
-      >
-        <h1>Tambah Supplier</h1>
-        <i class="fa-solid fa-plus text-4xl"></i>
+      <div class="py-4 px-8 flex flex-col gap-4">
+        <!-- Enhanced Search Bar -->
+        <div class="flex items-center px-0 relative justify-center">
+          <input
+            type="text"
+            id="searchSupplier"
+            placeholder="Search suppliers by name, courier, cost, or description..."
+            class="mb-2 p-2.5 rounded-l w-full max-w-[500px] bg-white border-l border-t border-b border-black text-base focus:outline-none placeholder:text-center"
+            @input="handleSearch"
+            :value="searchTerm"
+          />
+
+          <!-- Clear search button -->
+          <button
+            v-if="isSearching"
+            @click="clearSearch"
+            class="mb-2 bg-white p-2.5 border-t border-b border-black text-gray-500 hover:text-gray-700 focus:outline-none"
+            title="Clear search"
+          >
+            <i class="fa fa-times"></i>
+          </button>
+
+          <!-- Search icon -->
+          <i
+            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-r text-gray-400 border-r border-t border-b border-black"
+          ></i>
+        </div>
+
+        <!-- Search Results Info for Cards -->
+        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600">
+          <span v-if="filteredSuppliersForCards.length > 0">
+            Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
+          </span>
+          <span v-else class="text-orange-600"> No suppliers found for "{{ searchTerm }}" </span>
+        </div>
+
+        <!-- Enhanced Supplier Carousel -->
+        <div
+          id="supplier-carousel"
+          class="flex flex-nowrap gap-10 items-center overflow-x-scroll max-w-screen"
+        >
+          <!-- Show filtered suppliers in cards -->
+          <supplier-card
+            v-for="supplier in filteredSuppliersForCards"
+            :key="supplier.id"
+            :name="supplier.name"
+            :courier="supplier.courier_name"
+            :cost="supplier.total_cost"
+            :arrive-date="supplier.arrive_at"
+            class="supplier-card-item"
+            :class="{ highlighted: isSearching }"
+          />
+
+          <!-- No results state for cards -->
+          <div
+            v-if="!filteredSuppliersForCards.length && isSearching"
+            class="flex flex-col items-center justify-center text-gray-400 min-w-[300px] p-8 border-2 border-dashed border-gray-300 rounded-lg"
+          >
+            <i class="fa fa-search text-4xl mb-2"></i>
+            <p class="text-lg">No suppliers found</p>
+            <p class="text-sm">Try different search terms</p>
+            <button
+              @click="clearSearch"
+              class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Clear Search
+            </button>
+          </div>
+
+          <!-- Add Supplier Button - always visible -->
+          <div
+            class="flex flex-col items-center text-base text-2xl font-extrabold cursor-pointer min-w-fit"
+          >
+            <h1>Tambah Supplier</h1>
+            <i class="fa-solid fa-plus text-4xl"></i>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -396,15 +405,6 @@ function highlightSearchTerm(text, searchTerm) {
               </th>
               <th
                 class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('other')"
-              >
-                Other
-                <span v-if="sortKey === 'other'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
                 @click="sortBy('created_at')"
               >
                 Created At
@@ -437,9 +437,6 @@ function highlightSearchTerm(text, searchTerm) {
                 Rp.<span
                   v-html="highlightSearchTerm(supplier.total_cost?.toString() || '', searchTerm)"
                 ></span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span v-html="highlightSearchTerm(supplier.other, searchTerm)"></span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 {{
