@@ -271,7 +271,7 @@ function highlightSearchTerm(text, searchTerm) {
 </script>
 
 <template>
-  <div class="flex flex-col mx-4 my-10 gap-6">
+  <div class="flex flex-col mx-4 my-4 gap-6">
     <div class="bg-white rounded-xl mb-4 shadow">
       <div
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
