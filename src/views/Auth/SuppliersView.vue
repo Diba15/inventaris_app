@@ -286,7 +286,7 @@ function highlightSearchTerm(text, searchTerm) {
             type="text"
             id="searchSupplier"
             placeholder="Search suppliers by name, courier, cost, or description..."
-            class="mb-2 p-2.5 rounded-l w-full max-w-[600px] bg-white border-l border-t border-b border-black text-base focus:outline-none placeholder:text-center"
+            class="mb-2 p-2.5 rounded-s-xl w-full max-w-[600px] bg-white border-l border-t border-b border-black text-base focus:outline-none placeholder:text-center"
             @input="handleSearch"
             :value="searchTerm"
           />
@@ -303,7 +303,7 @@ function highlightSearchTerm(text, searchTerm) {
 
           <!-- Search icon -->
           <i
-            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-r text-gray-400 border-r border-t border-b border-black"
+            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-e-xl text-gray-400 border-r border-t border-b border-black"
           ></i>
         </div>
 
