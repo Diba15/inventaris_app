@@ -317,17 +317,6 @@ function statusClass(status) {
 
 <template>
   <div class="flex flex-col gap-10 mx-4 my-4 h-full">
-    <!-- Loading indicator -->
-    <div
-      v-if="isLoading"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div class="bg-white p-4 rounded-lg">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-2 text-center">Loading...</p>
-      </div>
-    </div>
-
     <!-- Error message -->
     <div
       v-if="error"
@@ -345,12 +334,6 @@ function statusClass(status) {
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
         <h1 class="text-xl font-bold self-start md:self-center">Warehouse Map</h1>
-        <button
-          @click="getWarehouse"
-          class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
-        >
-          Refresh
-        </button>
       </div>
       <div id="map" class="w-full h-full min-h-[400px]"></div>
     </div>
