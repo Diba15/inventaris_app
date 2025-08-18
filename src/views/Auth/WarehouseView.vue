@@ -1,151 +1,174 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import L from 'leaflet'
+import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 
 // Dummy warehouse data
 const warehouseList = ref([
   {
-    id: 1,
+    code: 'G1',
     name: 'Gudang 1',
     address: 'Jl. Salak, Lkr. Sel., Kec. Lengkong, Kota Bandung, Jawa Barat 40263',
     capacity: '1000 m²',
     status: 'Active',
-    manager: 'John Doe',
+    lat: -6.9175,
+    lng: 107.6191,
     created_at: '2024-01-15 00:00:00',
   },
   {
-    id: 2,
+    code: 'G2',
     name: 'Gudang 2',
     address: 'Jl. Sudirman, Jakarta Pusat, DKI Jakarta 10110',
     capacity: '1500 m²',
     status: 'Active',
-    manager: 'Jane Smith',
+    lat: -6.1944,
+    lng: 106.8229,
     created_at: '2024-01-20 00:00:00',
   },
   {
-    id: 3,
+    code: 'G3',
     name: 'Gudang 3',
     address: 'Jl. Thamrin, Jakarta Selatan, DKI Jakarta 12190',
     capacity: '800 m²',
     status: 'Maintenance',
-    manager: 'Bob Johnson',
+    lat: -6.1944,
+    lng: 106.8229,
     created_at: '2024-02-01 00:00:00',
   },
   {
-    id: 4,
+    code: 'G4',
     name: 'Gudang 4',
     address: 'Jl. Gatot Subroto, Jakarta Selatan, DKI Jakarta 12930',
     capacity: '2000 m²',
     status: 'Active',
-    manager: 'Alice Brown',
+    lat: -6.2088,
+    lng: 106.8456,
     created_at: '2024-02-10 00:00:00',
   },
   {
-    id: 5,
+    code: 'G5',
     name: 'Gudang 5',
     address: 'Jl. Hayam Wuruk, Jakarta Barat, DKI Jakarta 11180',
     capacity: '1200 m²',
     status: 'Active',
-    manager: 'Charlie Wilson',
+    lat: -6.1468,
+    lng: 106.8271,
     created_at: '2024-02-15 00:00:00',
   },
   {
-    id: 6,
+    code: 'G6',
     name: 'Gudang 6',
     address: 'Jl. Asia Afrika, Kota Bandung, Jawa Barat 40111',
     capacity: '900 m²',
     status: 'Inactive',
-    manager: 'Dewi Lestari',
+    lat: -6.9218,
+    lng: 107.6071,
     created_at: '2024-03-01 00:00:00',
   },
   {
-    id: 7,
+    code: 'G7',
     name: 'Gudang 7',
     address: 'Jl. Diponegoro, Kota Bandung, Jawa Barat 40115',
     capacity: '1100 m²',
     status: 'Active',
-    manager: 'Rudi Hartono',
+    lat: -6.903,
+    lng: 107.6132,
     created_at: '2024-03-10 00:00:00',
   },
   {
-    id: 8,
+    code: 'G8',
     name: 'Gudang 8',
     address: 'Jl. Merdeka, Kota Bandung, Jawa Barat 40117',
     capacity: '1300 m²',
     status: 'Maintenance',
-    manager: 'Siti Aminah',
+    lat: -6.9218,
+    lng: 107.6071,
     created_at: '2024-03-15 00:00:00',
   },
   {
-    id: 9,
+    code: 'G9',
     name: 'Gudang 9',
     address: 'Jl. Braga, Kota Bandung, Jawa Barat 40111',
     capacity: '950 m²',
     status: 'Active',
-    manager: 'Andi Wijaya',
+    lat: -6.9175,
+    lng: 107.6091,
     created_at: '2024-03-20 00:00:00',
   },
   {
-    id: 10,
+    code: 'G10',
     name: 'Gudang 10',
     address: 'Jl. Cihampelas, Kota Bandung, Jawa Barat 40131',
     capacity: '1050 m²',
     status: 'Inactive',
-    manager: 'Maya Sari',
+    lat: -6.8947,
+    lng: 107.6063,
     created_at: '2024-03-25 00:00:00',
   },
   {
-    id: 11,
+    code: 'G11',
     name: 'Gudang 11',
     address: 'Jl. Setiabudi, Kota Bandung, Jawa Barat 40141',
     capacity: '1700 m²',
     status: 'Active',
-    manager: 'Budi Santoso',
+    lat: -6.8736,
+    lng: 107.6307,
     created_at: '2024-04-01 00:00:00',
   },
   {
-    id: 12,
+    code: 'G12',
     name: 'Gudang 12',
     address: 'Jl. Pasteur, Kota Bandung, Jawa Barat 40161',
     capacity: '1600 m²',
     status: 'Maintenance',
-    manager: 'Lina Marlina',
+    lat: -6.8951,
+    lng: 107.5733,
     created_at: '2024-04-05 00:00:00',
   },
   {
-    id: 13,
+    code: 'G13',
     name: 'Gudang 13',
     address: 'Jl. Dago, Kota Bandung, Jawa Barat 40135',
     capacity: '1400 m²',
     status: 'Active',
-    manager: 'Agus Salim',
+    lat: -6.8667,
+    lng: 107.6128,
     created_at: '2024-04-10 00:00:00',
   },
   {
-    id: 14,
+    code: 'G14',
     name: 'Gudang 14',
     address: 'Jl. Riau, Kota Bandung, Jawa Barat 40115',
     capacity: '1250 m²',
     status: 'Inactive',
-    manager: 'Yuni Astuti',
+    lat: -6.903,
+    lng: 107.6102,
     created_at: '2024-04-15 00:00:00',
   },
   {
-    id: 15,
+    code: 'G15',
     name: 'Gudang 15',
     address: 'Jl. Sukajadi, Kota Bandung, Jawa Barat 40162',
     capacity: '1800 m²',
     status: 'Active',
-    manager: 'Fajar Pratama',
+    lat: -6.878,
+    lng: 107.5936,
     created_at: '2024-04-20 00:00:00',
   },
 ])
+
+// Reactive Variable
+const warehouseAddress = ref('')
+
+// Map instance and markers
+let map = null
+const markers = ref({})
 
 // Simple state management for pagination only
 const startPage = ref(0)
 const currentPage = ref(1)
 const sortOrder = ref('asc')
-const sortKey = ref('name')
+const sortKey = ref('created_at')
 
 // Pagination calculations
 const limit = 5
@@ -155,17 +178,12 @@ const end = computed(() => startPage.value * limit + limit)
 const startPageCount = computed(() => startPage.value * 5 + 1)
 const endPageCount = computed(() => {
   const end = startPage.value * 5 + 5
-  return end > warehouseList.value.length ? warehouseList.value.length : end
+  return end > sortedAllWarehouses.value.length ? sortedAllWarehouses.value.length : end
 })
 
-// Filter warehouses per page
-const paginatedWarehouses = computed(() => {
-  return warehouseList.value.slice(start.value, end.value)
-})
-
-// Computed property to sort warehouses
-const sortedWarehouses = computed(() => {
-  return [...paginatedWarehouses.value].sort((a, b) => {
+// Computed property to sort ALL warehouses first
+const sortedAllWarehouses = computed(() => {
+  return [...warehouseList.value].sort((a, b) => {
     let aValue = a[sortKey.value]
     let bValue = b[sortKey.value]
 
@@ -187,9 +205,14 @@ const sortedWarehouses = computed(() => {
   })
 })
 
+// Then paginate the sorted data
+const sortedWarehouses = computed(() => {
+  return sortedAllWarehouses.value.slice(start.value, end.value)
+})
+
 // Function to handle pagination
 function nextPage() {
-  if (startPage.value < Math.ceil(warehouseList.value.length / limit) - 1) {
+  if (startPage.value < Math.ceil(sortedAllWarehouses.value.length / limit) - 1) {
     startPage.value++
   }
   currentPage.value = startPage.value + 1
@@ -215,7 +238,7 @@ function prevPage() {
 }
 
 function goToPage(page) {
-  const totalPages = Math.ceil(warehouseList.value.length / limit)
+  const totalPages = Math.ceil(sortedAllWarehouses.value.length / limit)
   if (page >= 1 && page <= totalPages) {
     startPage.value = page - 1
     currentPage.value = page
@@ -229,7 +252,7 @@ function sortBy(key) {
 }
 
 // Computed for pagination info
-const totalPages = computed(() => Math.ceil(warehouseList.value.length / limit))
+const totalPages = computed(() => Math.ceil(sortedAllWarehouses.value.length / limit))
 
 // Function to create custom popup content
 function createWarehousePopup(name, address) {
@@ -253,47 +276,60 @@ function createWarehousePopup(name, address) {
   `
 }
 
+// Function to show location on map (FIXED)
+function showLocationOnMap(lat, lng, warehouseCode) {
+  if (map && markers.value[warehouseCode]) {
+    // Animate to the selected marker location
+    map.setView([lat, lng], 15, {
+      animate: true,
+      duration: 1.5
+    })
+
+    // Open the popup for the selected marker
+    setTimeout(() => {
+      markers.value[warehouseCode].openPopup()
+    }, 1000)
+  }
+}
+
 onMounted(() => {
-  // Import Leaflet dynamically to avoid SSR issues
-  let map = L.map('map').setView([-6.2088, 106.8456], 13) // Jakarta, Indonesia
+  // Initialize map once
+  map = L.map('map').setView([-6.903, 107.6191], 10) // Bandung, Indonesia
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
-  // Contoh menambahkan multiple markers
-  const warehouseLocations = [
-    {
-      lat: -6.2088,
-      lng: 106.8456,
-      name: 'Gudang 1',
-      address: 'Jl. Salak, Lkr. Sel., Kec. Lengkong, Kota Bandung, Jawa Barat 40263',
-    },
-    {
-      lat: -6.1751,
-      lng: 106.865,
-      name: 'Gudang 2',
-      address: 'Jl. Sudirman, Jakarta Pusat, DKI Jakarta 10110',
-    },
-    {
-      lat: -6.2088,
-      lng: 106.8456,
-      name: 'Gudang 3',
-      address: 'Jl. Thamrin, Jakarta Selatan, DKI Jakarta 12190',
-    },
-  ]
+  console.log(warehouseList.value)
 
-  warehouseLocations.forEach((location) => {
+  // Add markers and store references
+  warehouseList.value.forEach((location) => {
     const marker = L.marker([location.lat, location.lng]).addTo(map)
     const popupContent = createWarehousePopup(location.name, location.address)
     marker.bindPopup(popupContent)
+
+    // Store marker reference for later use
+    markers.value[location.code] = marker
   })
 })
+
+function statusClass(status) {
+  switch (status) {
+    case 'Active':
+      return 'py-1 px-4 bg-green-500 rounded-full w-fit text-white text-sm'
+    case 'Inactive':
+      return 'py-1 px-4 bg-red-500 rounded-full w-fit text-white text-sm'
+    case 'Maintenance':
+      return 'py-1 px-4 bg-yellow-500 rounded-full w-fit text-white text-sm'
+    default:
+      return 'py-1 px-4 bg-gray-500 rounded-full w-fit text-white text-sm'
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-10 mx-4 my-4 h-full">
-    <div class="bg-white rounded-xl shadow max-h-screen h-full">
+    <div class="bg-white rounded-xl shadow min-h-8/12">
       <div
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
@@ -302,18 +338,24 @@ onMounted(() => {
       <div id="map" class="w-full h-full"></div>
     </div>
 
-    <div class="flex mt-10 gap-4">
-      <div class="rounded-xl max-h-[100px] h-full max-w-xl w-full">
+    <div class="flex flex-col md:flex-row mt-10 pb-10 gap-4">
+      <div class="rounded-xl max-h-fit w-full">
         <div class="flex flex-col gap-4">
           <!-- Enhanced Table -->
-          <div class="warehouse-grid overflow-x-auto shadow-lg rounded-xl">
+          <div class="warehouse-grid overflow-x-auto shadow-lg rounded-xl w-full">
             <table
               class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
             >
               <thead class="bg-base text-white">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    No
+                  <th
+                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
+                    @click="sortBy('code')"
+                  >
+                    Code
+                    <span v-if="sortKey === 'code'">
+                      <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
+                    </span>
                   </th>
                   <th
                     class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
@@ -326,10 +368,10 @@ onMounted(() => {
                   </th>
                   <th
                     class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                    @click="sortBy('manager')"
+                    @click="sortBy('status')"
                   >
-                    Manager
-                    <span v-if="sortKey === 'manager'">
+                    Status
+                    <span v-if="sortKey === 'status'">
                       <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
                     </span>
                   </th>
@@ -350,20 +392,20 @@ onMounted(() => {
               <tbody class="bg-white divide-y divide-gray-200 text-base text-sm">
                 <tr
                   v-for="(warehouse, index) in sortedWarehouses"
-                  :key="warehouse.id"
+                  :key="warehouse.code"
                   :class="[
                     'hover:bg-gray-300 transition-colors',
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-100',
                   ]"
                 >
                   <td class="px-6 py-4 whitespace-nowrap">
-                    {{ startPageCount + index }}
+                    {{ warehouse.code }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap max-w-xs truncate">
                     {{ warehouse.address }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    {{ warehouse.manager }}
+                    <p :class="statusClass(warehouse.status)">{{ warehouse.status }}</p>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     {{
@@ -376,18 +418,22 @@ onMounted(() => {
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap flex gap-2">
                     <div class="text-blue-500 hover:text-blue-700 text-xl">
-                      <button>
+                      <button
+                        @click="showLocationOnMap(warehouse.lat, warehouse.lng, warehouse.code)"
+                        class="hover:scale-110 transition-transform"
+                        :title="`View ${warehouse.name} on map`"
+                      >
                         <i class="fa-solid fa-eye"></i>
                       </button>
                     </div>
-                    <button class="text-red-500 hover:text-red-700 text-xl">
+                    <button class="text-red-500 hover:text-red-700 text-xl hover:scale-110 transition-transform">
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </td>
                 </tr>
 
                 <!-- No results state -->
-                <tr v-if="warehouseList.length === 0">
+                <tr v-if="sortedAllWarehouses.length === 0">
                   <td colspan="8" class="text-center py-4">No warehouses available</td>
                 </tr>
               </tbody>
@@ -396,7 +442,7 @@ onMounted(() => {
 
           <!-- Enhanced Pagination -->
           <div id="pagination" class="flex justify-between text-base px-4 text-sm items-center">
-            <div>{{ startPageCount }} - {{ endPageCount }} of {{ warehouseList.length }}</div>
+            <div>{{ startPageCount }} - {{ endPageCount }} of {{ sortedAllWarehouses.length }}</div>
             <div class="flex gap-2 items-center" v-if="totalPages > 1">
               <div
                 class="p-1 cursor-pointer"
@@ -432,7 +478,7 @@ onMounted(() => {
       </div>
 
       <!-- Add Warehouse -->
-      <div class="bg-white rounded-xl shadow w-full">
+      <div class="bg-white rounded-xl shadow w-full h-fit">
         <div
           class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
         >
@@ -447,73 +493,22 @@ onMounted(() => {
             class="flex flex-col gap-4 my-4"
             @submit.prevent
           >
-            <div class="flex flex-col md:flex-row gap-4 items-center w-full">
-              <div class="flex flex-col gap-4 w-full">
-                <div class="flex flex-col md:flex-row gap-4">
-                  <AutoCompleteInput
-                    id="product_category"
-                    label="Select Category"
-                    placeholder="Type to search categories..."
-                    v-model="selectedCategory"
-                    :options="categories"
-                    option-label="category"
-                    option-value="category"
-                    :required="true"
-                    class="w-full max-w-md"
-                    @select="handleCategorySelect"
-                  />
-                  <input
-                    name="product_code"
-                    type="text"
-                    class="border border-base p-2 rounded w-full max-w-fit bg-gray-100 text-base"
-                    v-model="codeProduct"
-                    disabled
-                  />
-                </div>
-                <div class="flex flex-col flex-wrap gap-4 w-full">
-                  <div class="flex flex-col md:flex-row gap-4">
-                    <StandardFloatingInput
-                      id="product_name"
-                      type="text"
-                      name="product_name"
-                      placeholder="Product Name"
-                      label="Product Name"
-                      v-model="nameProduct"
-                      class="max-w-md w-full"
-                    />
-                    <StandardFloatingInput
-                      id="product_description"
-                      type="text"
-                      name="product_description"
-                      placeholder="Description"
-                      label="Description"
-                      v-model="descriptionProduct"
-                      class="max-w-md w-full"
-                    />
-                  </div>
-                  <div class="flex flex-col md:flex-row gap-4">
-                    <StandardFloatingInput
-                      id="product_price"
-                      type="text"
-                      name="product_price"
-                      placeholder="Price"
-                      label="Price"
-                      v-model="priceProduct"
-                      class="max-w-md w-full"
-                      @handlePriceInput="handlePriceInput"
-                    />
-                    <StandardFloatingInput
-                      id="product_qty"
-                      type="number"
-                      name="product_qty"
-                      placeholder="Quantity"
-                      label="Quantity"
-                      v-model="quantityProduct"
-                      class="max-w-md w-full"
-                    />
-                  </div>
-                </div>
-              </div>
+            <div class="flex flex-col gap-4 w-full">
+              <StandardFloatingInput
+                id="address"
+                type="text"
+                name="address"
+                placeholder="Warehouse Address"
+                label="Warehouse Address"
+                v-model="warehouseAddress"
+                class="max-w-md w-full"
+              />
+              <button
+                type="button"
+                class="bg-sub text-white px-4 py-2 w-fit h-[40px] rounded-xl hover:bg-yellow-600 transition-colors cursor-pointer"
+              >
+                Add Product
+              </button>
             </div>
           </form>
         </div>

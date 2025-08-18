@@ -46,7 +46,7 @@ function toggleProfileMenu() {
 </script>
 
 <template>
-  <div class="fixed top-0 left-0 w-full z-50">
+  <div class="fixed top-0 left-0 w-full z-[9999]">
     <button
       @click="toggleMobileMenu"
       class="py-2 pl-6 pr-4 flex items-center justify-between rounded-full text-white bg-base w-fit fixed -left-6 top-[50%]"
