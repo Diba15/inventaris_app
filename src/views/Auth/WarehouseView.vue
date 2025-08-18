@@ -1,170 +1,112 @@
 <script setup>
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import L from 'leaflet'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
+import axios from 'axios'
 
-// Dummy warehouse data
-const warehouseList = ref([
-  {
-    code: 'G1',
-    name: 'Gudang 1',
-    address: 'Jl. Salak, Lkr. Sel., Kec. Lengkong, Kota Bandung, Jawa Barat 40263',
-    capacity: '1000 m²',
-    status: 'Active',
-    lat: -6.9175,
-    lng: 107.6191,
-    created_at: '2024-01-15 00:00:00',
-  },
-  {
-    code: 'G2',
-    name: 'Gudang 2',
-    address: 'Jl. Sudirman, Jakarta Pusat, DKI Jakarta 10110',
-    capacity: '1500 m²',
-    status: 'Active',
-    lat: -6.1944,
-    lng: 106.8229,
-    created_at: '2024-01-20 00:00:00',
-  },
-  {
-    code: 'G3',
-    name: 'Gudang 3',
-    address: 'Jl. Thamrin, Jakarta Selatan, DKI Jakarta 12190',
-    capacity: '800 m²',
-    status: 'Maintenance',
-    lat: -6.1944,
-    lng: 106.8229,
-    created_at: '2024-02-01 00:00:00',
-  },
-  {
-    code: 'G4',
-    name: 'Gudang 4',
-    address: 'Jl. Gatot Subroto, Jakarta Selatan, DKI Jakarta 12930',
-    capacity: '2000 m²',
-    status: 'Active',
-    lat: -6.2088,
-    lng: 106.8456,
-    created_at: '2024-02-10 00:00:00',
-  },
-  {
-    code: 'G5',
-    name: 'Gudang 5',
-    address: 'Jl. Hayam Wuruk, Jakarta Barat, DKI Jakarta 11180',
-    capacity: '1200 m²',
-    status: 'Active',
-    lat: -6.1468,
-    lng: 106.8271,
-    created_at: '2024-02-15 00:00:00',
-  },
-  {
-    code: 'G6',
-    name: 'Gudang 6',
-    address: 'Jl. Asia Afrika, Kota Bandung, Jawa Barat 40111',
-    capacity: '900 m²',
-    status: 'Inactive',
-    lat: -6.9218,
-    lng: 107.6071,
-    created_at: '2024-03-01 00:00:00',
-  },
-  {
-    code: 'G7',
-    name: 'Gudang 7',
-    address: 'Jl. Diponegoro, Kota Bandung, Jawa Barat 40115',
-    capacity: '1100 m²',
-    status: 'Active',
-    lat: -6.903,
-    lng: 107.6132,
-    created_at: '2024-03-10 00:00:00',
-  },
-  {
-    code: 'G8',
-    name: 'Gudang 8',
-    address: 'Jl. Merdeka, Kota Bandung, Jawa Barat 40117',
-    capacity: '1300 m²',
-    status: 'Maintenance',
-    lat: -6.9218,
-    lng: 107.6071,
-    created_at: '2024-03-15 00:00:00',
-  },
-  {
-    code: 'G9',
-    name: 'Gudang 9',
-    address: 'Jl. Braga, Kota Bandung, Jawa Barat 40111',
-    capacity: '950 m²',
-    status: 'Active',
-    lat: -6.9175,
-    lng: 107.6091,
-    created_at: '2024-03-20 00:00:00',
-  },
-  {
-    code: 'G10',
-    name: 'Gudang 10',
-    address: 'Jl. Cihampelas, Kota Bandung, Jawa Barat 40131',
-    capacity: '1050 m²',
-    status: 'Inactive',
-    lat: -6.8947,
-    lng: 107.6063,
-    created_at: '2024-03-25 00:00:00',
-  },
-  {
-    code: 'G11',
-    name: 'Gudang 11',
-    address: 'Jl. Setiabudi, Kota Bandung, Jawa Barat 40141',
-    capacity: '1700 m²',
-    status: 'Active',
-    lat: -6.8736,
-    lng: 107.6307,
-    created_at: '2024-04-01 00:00:00',
-  },
-  {
-    code: 'G12',
-    name: 'Gudang 12',
-    address: 'Jl. Pasteur, Kota Bandung, Jawa Barat 40161',
-    capacity: '1600 m²',
-    status: 'Maintenance',
-    lat: -6.8951,
-    lng: 107.5733,
-    created_at: '2024-04-05 00:00:00',
-  },
-  {
-    code: 'G13',
-    name: 'Gudang 13',
-    address: 'Jl. Dago, Kota Bandung, Jawa Barat 40135',
-    capacity: '1400 m²',
-    status: 'Active',
-    lat: -6.8667,
-    lng: 107.6128,
-    created_at: '2024-04-10 00:00:00',
-  },
-  {
-    code: 'G14',
-    name: 'Gudang 14',
-    address: 'Jl. Riau, Kota Bandung, Jawa Barat 40115',
-    capacity: '1250 m²',
-    status: 'Inactive',
-    lat: -6.903,
-    lng: 107.6102,
-    created_at: '2024-04-15 00:00:00',
-  },
-  {
-    code: 'G15',
-    name: 'Gudang 15',
-    address: 'Jl. Sukajadi, Kota Bandung, Jawa Barat 40162',
-    capacity: '1800 m²',
-    status: 'Active',
-    lat: -6.878,
-    lng: 107.5936,
-    created_at: '2024-04-20 00:00:00',
-  },
-])
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
-// Reactive Variable
+// Reactive variables
+const warehouseList = ref([])
 const warehouseAddress = ref('')
+const isLoading = ref(false)
+const error = ref(null)
+
+// API function to get warehouses
+const getWarehouse = async () => {
+  isLoading.value = true
+  error.value = null
+  try {
+    const response = await axios.get(`${STRAPI_URL}/api/warehouses`)
+    // Handle different response structures from Strapi
+    warehouseList.value = response.data.data || response.data || []
+    console.log('Warehouses loaded:', warehouseList.value)
+  } catch (err) {
+    console.error('Error fetching warehouses:', err)
+    error.value = 'Failed to load warehouses'
+    warehouseList.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// API function to add new warehouse
+const addWarehouse = async () => {
+  if (!warehouseAddress.value.trim()) {
+    alert('Please enter a warehouse address')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const newWarehouse = {
+      data: {
+        address: warehouseAddress.value,
+        code: `WH${Date.now()}`, // Generate simple code
+        status: 'Active',
+        name: `Warehouse ${warehouseAddress.value.split(',')[0]}`,
+        // You might need to geocode the address to get lat/lng
+        lat: -6.903 + (Math.random() - 0.5) * 0.1, // Random coordinates for demo
+        lng: 107.6191 + (Math.random() - 0.5) * 0.1,
+      },
+    }
+
+    const response = await axios.post(`${STRAPI_URL}/api/warehouses`, newWarehouse)
+
+    // Add to local list
+    const addedWarehouse = response.data.data || response.data
+    warehouseList.value.push(addedWarehouse)
+
+    // Clear form
+    warehouseAddress.value = ''
+
+    // Add marker to map
+    if (map && addedWarehouse.lat && addedWarehouse.lng) {
+      addMarkerToMap(addedWarehouse)
+    }
+
+    alert('Warehouse added successfully!')
+  } catch (err) {
+    console.error('Error adding warehouse:', err)
+    alert('Failed to add warehouse')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// API function to delete warehouse
+const deleteWarehouse = async (warehouseId, warehouseCode) => {
+  if (!confirm('Are you sure you want to delete this warehouse?')) {
+    return
+  }
+
+  isLoading.value = true
+  try {
+    await axios.delete(`${STRAPI_URL}/api/warehouses/${warehouseId}`)
+
+    // Remove from local list
+    warehouseList.value = warehouseList.value.filter((w) => w.id !== warehouseId)
+
+    // Remove marker from map
+    if (markers.value[warehouseCode]) {
+      map.removeLayer(markers.value[warehouseCode])
+      delete markers.value[warehouseCode]
+    }
+
+    alert('Warehouse deleted successfully!')
+  } catch (err) {
+    console.error('Error deleting warehouse:', err)
+    alert('Failed to delete warehouse')
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // Map instance and markers
 let map = null
 const markers = ref({})
 
-// Simple state management for pagination only
+// Pagination state
 const startPage = ref(0)
 const currentPage = ref(1)
 const sortOrder = ref('asc')
@@ -183,9 +125,11 @@ const endPageCount = computed(() => {
 
 // Computed property to sort ALL warehouses first
 const sortedAllWarehouses = computed(() => {
+  if (!warehouseList.value || warehouseList.value.length === 0) return []
+
   return [...warehouseList.value].sort((a, b) => {
-    let aValue = a[sortKey.value]
-    let bValue = b[sortKey.value]
+    let aValue = a.attributes ? a.attributes[sortKey.value] : a[sortKey.value]
+    let bValue = b.attributes ? b.attributes[sortKey.value] : b[sortKey.value]
 
     if (aValue == null) aValue = ''
     if (bValue == null) bValue = ''
@@ -255,7 +199,10 @@ function sortBy(key) {
 const totalPages = computed(() => Math.ceil(sortedAllWarehouses.value.length / limit))
 
 // Function to create custom popup content
-function createWarehousePopup(name, address) {
+function createWarehousePopup(warehouse) {
+  const name = warehouse?.warehouse_name || 'Unknown Warehouse'
+  const address = warehouse?.warehouse_address || 'Unknown Address'
+
   return `
     <div class="warehouse-popup flex gap-4 items-center bg-base">
       <div class="popup-image">
@@ -276,40 +223,81 @@ function createWarehousePopup(name, address) {
   `
 }
 
-// Function to show location on map (FIXED)
-function showLocationOnMap(lat, lng, warehouseCode) {
-  if (map && markers.value[warehouseCode]) {
+// Function to add marker to map
+function addMarkerToMap(warehouse) {
+  const lat = warehouse?.latitude
+  const lng = warehouse?.longitude
+  const code = warehouse?.warehouse_code
+
+  if (!lat || !lng || !code) return
+
+  const marker = L.marker([lat, lng]).addTo(map)
+  const popupContent = createWarehousePopup(warehouse)
+  marker.bindPopup(popupContent)
+
+  // Store marker reference for later use
+  markers.value[code] = marker
+}
+
+// Function to show location on map
+function showLocationOnMap(warehouse) {
+  const lat = warehouse?.latitude
+  const lng = warehouse?.longitude
+  const code = warehouse?.warehouse_code
+
+  if (map && markers.value[code] && lat && lng) {
     // Animate to the selected marker location
     map.setView([lat, lng], 15, {
       animate: true,
-      duration: 1.5
+      duration: 1.5,
     })
 
     // Open the popup for the selected marker
     setTimeout(() => {
-      markers.value[warehouseCode].openPopup()
+      markers.value[code].openPopup()
     }, 1000)
   }
 }
 
-onMounted(() => {
-  // Initialize map once
+// Function to get warehouse attribute
+function getWarehouseAttribute(warehouse, attr) {
+  return warehouse.attributes ? warehouse.attributes[attr] : warehouse[attr]
+}
+
+// Watch for changes in warehouse list to update map markers
+watch(
+  warehouseList,
+  (newList) => {
+    if (map && newList.length > 0) {
+      // Clear existing markers
+      Object.values(markers.value).forEach((marker) => {
+        map.removeLayer(marker)
+      })
+      markers.value = {}
+
+      // Add new markers
+      newList.forEach((warehouse) => {
+        addMarkerToMap(warehouse)
+      })
+    }
+  },
+  { deep: true },
+)
+
+onMounted(async () => {
+  // Load warehouses first
+  await getWarehouse()
+
+  // Initialize map
   map = L.map('map').setView([-6.903, 107.6191], 10) // Bandung, Indonesia
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
-  console.log(warehouseList.value)
-
-  // Add markers and store references
-  warehouseList.value.forEach((location) => {
-    const marker = L.marker([location.lat, location.lng]).addTo(map)
-    const popupContent = createWarehousePopup(location.name, location.address)
-    marker.bindPopup(popupContent)
-
-    // Store marker reference for later use
-    markers.value[location.code] = marker
+  // Add markers for loaded warehouses
+  warehouseList.value.forEach((warehouse) => {
+    addMarkerToMap(warehouse)
   })
 })
 
@@ -329,16 +317,46 @@ function statusClass(status) {
 
 <template>
   <div class="flex flex-col gap-10 mx-4 my-4 h-full">
+    <!-- Loading indicator -->
+    <div
+      v-if="isLoading"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-4 rounded-lg">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="mt-2 text-center">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div
+      v-if="error"
+      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+    >
+      <strong class="font-bold">Error!</strong>
+      <span class="block sm:inline"> {{ error }}</span>
+      <button @click="getWarehouse" class="ml-4 bg-red-500 text-white px-3 py-1 rounded text-sm">
+        Retry
+      </button>
+    </div>
+
     <div class="bg-white rounded-xl shadow min-h-8/12">
       <div
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
-        <h1 class="text-xl font-bold self-start md:self-center">Warehouse</h1>
+        <h1 class="text-xl font-bold self-start md:self-center">Warehouse Map</h1>
+        <button
+          @click="getWarehouse"
+          class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+        >
+          Refresh
+        </button>
       </div>
-      <div id="map" class="w-full h-full"></div>
+      <div id="map" class="w-full h-full min-h-[400px]"></div>
     </div>
 
     <div class="flex flex-col md:flex-row mt-10 pb-10 gap-4">
+      <!-- Table Warehouse -->
       <div class="rounded-xl max-h-fit w-full">
         <div class="flex flex-col gap-4">
           <!-- Enhanced Table -->
@@ -385,31 +403,36 @@ function statusClass(status) {
                     </span>
                   </th>
                   <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Aksi
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200 text-base text-sm">
                 <tr
                   v-for="(warehouse, index) in sortedWarehouses"
-                  :key="warehouse.code"
+                  :key="getWarehouseAttribute(warehouse, 'code') || warehouse.id"
                   :class="[
                     'hover:bg-gray-300 transition-colors',
                     index % 2 === 0 ? 'bg-white' : 'bg-gray-100',
                   ]"
                 >
                   <td class="px-6 py-4 whitespace-nowrap">
-                    {{ warehouse.code }}
+                    {{ getWarehouseAttribute(warehouse, 'warehouse_code') }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap max-w-xs truncate">
-                    {{ warehouse.address }}
+                    {{ getWarehouseAttribute(warehouse, 'warehouse_address') }}
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
-                    <p :class="statusClass(warehouse.status)">{{ warehouse.status }}</p>
+                    <p :class="statusClass(getWarehouseAttribute(warehouse, 'status_warehouse'))">
+                      {{ getWarehouseAttribute(warehouse, 'status_warehouse') }}
+                    </p>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap">
                     {{
-                      new Date(warehouse.created_at).toLocaleDateString('id-ID', {
+                      new Date(
+                        getWarehouseAttribute(warehouse, 'created_at') ||
+                          getWarehouseAttribute(warehouse, 'createdAt'),
+                      ).toLocaleDateString('id-ID', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -419,29 +442,44 @@ function statusClass(status) {
                   <td class="px-6 py-4 whitespace-nowrap flex gap-2">
                     <div class="text-blue-500 hover:text-blue-700 text-xl">
                       <button
-                        @click="showLocationOnMap(warehouse.lat, warehouse.lng, warehouse.code)"
+                        @click="showLocationOnMap(warehouse)"
                         class="hover:scale-110 transition-transform"
-                        :title="`View ${warehouse.name} on map`"
+                        :title="`View ${getWarehouseAttribute(warehouse, 'name')} on map`"
                       >
                         <i class="fa-solid fa-eye"></i>
                       </button>
                     </div>
-                    <button class="text-red-500 hover:text-red-700 text-xl hover:scale-110 transition-transform">
+                    <button
+                      @click="
+                        deleteWarehouse(warehouse.id, getWarehouseAttribute(warehouse, 'code'))
+                      "
+                      class="text-red-500 hover:text-red-700 text-xl hover:scale-110 transition-transform"
+                      :disabled="isLoading"
+                    >
                       <i class="fa-solid fa-trash-can"></i>
                     </button>
                   </td>
                 </tr>
 
                 <!-- No results state -->
-                <tr v-if="sortedAllWarehouses.length === 0">
-                  <td colspan="8" class="text-center py-4">No warehouses available</td>
+                <tr v-if="sortedAllWarehouses.length === 0 && !isLoading">
+                  <td colspan="5" class="text-center py-8">
+                    <div class="text-gray-500">
+                      <i class="fa-solid fa-warehouse text-4xl mb-2"></i>
+                      <p>No warehouses available</p>
+                    </div>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <!-- Enhanced Pagination -->
-          <div id="pagination" class="flex justify-between text-base px-4 text-sm items-center">
+          <div
+            id="pagination"
+            class="flex justify-between text-base px-4 text-sm items-center"
+            v-if="!isLoading"
+          >
             <div>{{ startPageCount }} - {{ endPageCount }} of {{ sortedAllWarehouses.length }}</div>
             <div class="flex gap-2 items-center" v-if="totalPages > 1">
               <div
@@ -485,14 +523,7 @@ function statusClass(status) {
           <h1 class="text-xl font-bold self-start md:self-center">Add Warehouse</h1>
         </div>
         <div class="px-6 py-2">
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            action=""
-            id="add_product"
-            class="flex flex-col gap-4 my-4"
-            @submit.prevent
-          >
+          <form @submit.prevent="addWarehouse" class="flex flex-col gap-4 my-4">
             <div class="flex flex-col gap-4 w-full">
               <StandardFloatingInput
                 id="address"
@@ -502,12 +533,14 @@ function statusClass(status) {
                 label="Warehouse Address"
                 v-model="warehouseAddress"
                 class="max-w-md w-full"
+                required
               />
               <button
-                type="button"
-                class="bg-sub text-white px-4 py-2 w-fit h-[40px] rounded-xl hover:bg-yellow-600 transition-colors cursor-pointer"
+                type="submit"
+                :disabled="isLoading || !warehouseAddress.trim()"
+                class="bg-sub text-white px-4 py-2 w-fit h-[40px] rounded-xl hover:bg-yellow-600 transition-colors cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Add Product
+                {{ isLoading ? 'Adding...' : 'Add Warehouse' }}
               </button>
             </div>
           </form>
@@ -600,5 +633,19 @@ function statusClass(status) {
 
 .hover-table tbody tr:hover {
   background-color: #f3f4f6;
+}
+
+/* Loading animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 </style>
