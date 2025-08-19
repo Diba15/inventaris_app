@@ -1,16 +1,86 @@
 <script setup>
-import { ref, computed, nextTick, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import L from 'leaflet'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
+import TableWarehouse from '@/components/warehouse/TableWarehouse.vue'
+import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
 import axios from 'axios'
 
 const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
 // Reactive variables
 const warehouseList = ref([])
-const warehouseAddress = ref('')
 const isLoading = ref(false)
 const error = ref(null)
+
+// Warehouse Input Ref
+const warehouseAddress = ref('')
+const warehouseName = ref('')
+const warehouseLat = ref('')
+const warehouseLng = ref('')
+const warehouseCode = ref('')
+const warehouseStatus = ref('Active')
+
+const statusOptions = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Inactive', label: 'Inactive' },
+  { value: 'Maintenance', label: 'Maintenance' },
+]
+
+function codeGenerator() {
+  const existingCodes = warehouseList.value
+    .map((w) => getWarehouseAttribute(w, 'code'))
+    .filter((code) => /^G\d+$/.test(code))
+
+  if (existingCodes.length === 0) {
+    return 'G1'
+  }
+
+  const numbers = existingCodes.map((code) => parseInt(code.slice(1), 10))
+  const maxNumber = Math.max(...numbers)
+
+  return `G${maxNumber + 1}`
+}
+
+// Map instance and markers
+let map = null
+const markers = ref({})
+
+// Helper function to get warehouse attribute (handles both Strapi and regular objects)
+function getWarehouseAttribute(warehouse, attribute) {
+  // For Strapi format (warehouse.attributes.field)
+  if (warehouse.attributes && warehouse.attributes[attribute] !== undefined) {
+    return warehouse.attributes[attribute]
+  }
+
+  // For regular object format (warehouse.field)
+  if (warehouse[attribute] !== undefined) {
+    return warehouse[attribute]
+  }
+
+  // Handle common field mappings
+  const fieldMappings = {
+    code: ['warehouse_code', 'code'],
+    address: ['warehouse_address', 'address'],
+    status: ['status_warehouse', 'status'],
+    name: ['warehouse_name', 'name'],
+    lat: ['latitude', 'lat'],
+    lng: ['longitude', 'lng'],
+  }
+
+  if (fieldMappings[attribute]) {
+    for (const field of fieldMappings[attribute]) {
+      if (warehouse.attributes && warehouse.attributes[field] !== undefined) {
+        return warehouse.attributes[field]
+      }
+      if (warehouse[field] !== undefined) {
+        return warehouse[field]
+      }
+    }
+  }
+
+  return null
+}
 
 // API function to get warehouses
 const getWarehouse = async () => {
@@ -41,13 +111,12 @@ const addWarehouse = async () => {
   try {
     const newWarehouse = {
       data: {
-        address: warehouseAddress.value,
-        code: `WH${Date.now()}`, // Generate simple code
-        status: 'Active',
-        name: `Warehouse ${warehouseAddress.value.split(',')[0]}`,
-        // You might need to geocode the address to get lat/lng
-        lat: -6.903 + (Math.random() - 0.5) * 0.1, // Random coordinates for demo
-        lng: 107.6191 + (Math.random() - 0.5) * 0.1,
+        warehouse_address: warehouseAddress.value,
+        warehouse_code: warehouseCode.value,
+        status_warehouse: warehouseStatus.value || 'Active',
+        warehouse_name: warehouseName.value || 'Unnamed Warehouse',
+        latitude: warehouseLat.value,
+        longitude: warehouseLng.value,
       },
     }
 
@@ -59,9 +128,14 @@ const addWarehouse = async () => {
 
     // Clear form
     warehouseAddress.value = ''
+    warehouseName.value = ''
+    warehouseLat.value = ''
+    warehouseLng.value = ''
+    warehouseCode.value = codeGenerator()
+    warehouseStatus.value = 'Active'
 
     // Add marker to map
-    if (map && addedWarehouse.lat && addedWarehouse.lng) {
+    if (map && addedWarehouse) {
       addMarkerToMap(addedWarehouse)
     }
 
@@ -102,106 +176,10 @@ const deleteWarehouse = async (warehouseId, warehouseCode) => {
   }
 }
 
-// Map instance and markers
-let map = null
-const markers = ref({})
-
-// Pagination state
-const startPage = ref(0)
-const currentPage = ref(1)
-const sortOrder = ref('asc')
-const sortKey = ref('created_at')
-
-// Pagination calculations
-const limit = 5
-const start = computed(() => startPage.value * limit)
-const end = computed(() => startPage.value * limit + limit)
-
-const startPageCount = computed(() => startPage.value * 5 + 1)
-const endPageCount = computed(() => {
-  const end = startPage.value * 5 + 5
-  return end > sortedAllWarehouses.value.length ? sortedAllWarehouses.value.length : end
-})
-
-// Computed property to sort ALL warehouses first
-const sortedAllWarehouses = computed(() => {
-  if (!warehouseList.value || warehouseList.value.length === 0) return []
-
-  return [...warehouseList.value].sort((a, b) => {
-    let aValue = a.attributes ? a.attributes[sortKey.value] : a[sortKey.value]
-    let bValue = b.attributes ? b.attributes[sortKey.value] : b[sortKey.value]
-
-    if (aValue == null) aValue = ''
-    if (bValue == null) bValue = ''
-
-    if (sortKey.value === 'capacity') {
-      aValue = parseFloat(aValue) || 0
-      bValue = parseFloat(bValue) || 0
-    } else {
-      aValue = aValue.toString().toLowerCase()
-      bValue = bValue.toString().toLowerCase()
-    }
-
-    if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
-
-    return 0
-  })
-})
-
-// Then paginate the sorted data
-const sortedWarehouses = computed(() => {
-  return sortedAllWarehouses.value.slice(start.value, end.value)
-})
-
-// Function to handle pagination
-function nextPage() {
-  if (startPage.value < Math.ceil(sortedAllWarehouses.value.length / limit) - 1) {
-    startPage.value++
-  }
-  currentPage.value = startPage.value + 1
-  nextTick(() => {
-    const input = document.querySelector('#current-page input')
-    if (input) {
-      input.value = currentPage.value
-    }
-  })
-}
-
-function prevPage() {
-  if (startPage.value > 0) {
-    startPage.value--
-  }
-  currentPage.value = startPage.value + 1
-  nextTick(() => {
-    const input = document.querySelector('#current-page input')
-    if (input) {
-      input.value = currentPage.value
-    }
-  })
-}
-
-function goToPage(page) {
-  const totalPages = Math.ceil(sortedAllWarehouses.value.length / limit)
-  if (page >= 1 && page <= totalPages) {
-    startPage.value = page - 1
-    currentPage.value = page
-  }
-}
-
-// Function to sort warehouses by a key
-function sortBy(key) {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  sortKey.value = key
-}
-
-// Computed for pagination info
-const totalPages = computed(() => Math.ceil(sortedAllWarehouses.value.length / limit))
-
 // Function to create custom popup content
 function createWarehousePopup(warehouse) {
-  const name = warehouse?.warehouse_name || 'Unknown Warehouse'
-  const address = warehouse?.warehouse_address || 'Unknown Address'
+  const name = getWarehouseAttribute(warehouse, 'name') || 'Unknown Warehouse'
+  const address = getWarehouseAttribute(warehouse, 'address') || 'Unknown Address'
 
   return `
     <div class="warehouse-popup flex gap-4 items-center bg-base">
@@ -225,11 +203,14 @@ function createWarehousePopup(warehouse) {
 
 // Function to add marker to map
 function addMarkerToMap(warehouse) {
-  const lat = warehouse?.latitude
-  const lng = warehouse?.longitude
-  const code = warehouse?.warehouse_code
+  const lat = getWarehouseAttribute(warehouse, 'lat')
+  const lng = getWarehouseAttribute(warehouse, 'lng')
+  const code = getWarehouseAttribute(warehouse, 'code')
 
-  if (!lat || !lng || !code) return
+  if (!lat || !lng || !code) {
+    console.warn('Missing coordinates or code for warehouse:', warehouse)
+    return
+  }
 
   const marker = L.marker([lat, lng]).addTo(map)
   const popupContent = createWarehousePopup(warehouse)
@@ -241,9 +222,11 @@ function addMarkerToMap(warehouse) {
 
 // Function to show location on map
 function showLocationOnMap(warehouse) {
-  const lat = warehouse?.latitude
-  const lng = warehouse?.longitude
-  const code = warehouse?.warehouse_code
+  const lat = getWarehouseAttribute(warehouse, 'lat')
+  const lng = getWarehouseAttribute(warehouse, 'lng')
+  const code = getWarehouseAttribute(warehouse, 'code')
+
+  console.log('Showing location:', { lat, lng, code, warehouse })
 
   if (map && markers.value[code] && lat && lng) {
     // Animate to the selected marker location
@@ -256,12 +239,9 @@ function showLocationOnMap(warehouse) {
     setTimeout(() => {
       markers.value[code].openPopup()
     }, 1000)
+  } else {
+    console.warn('Cannot show location - missing map, marker, or coordinates')
   }
-}
-
-// Function to get warehouse attribute
-function getWarehouseAttribute(warehouse, attr) {
-  return warehouse.attributes ? warehouse.attributes[attr] : warehouse[attr]
 }
 
 // Watch for changes in warehouse list to update map markers
@@ -288,6 +268,8 @@ onMounted(async () => {
   // Load warehouses first
   await getWarehouse()
 
+  warehouseCode.value = codeGenerator()
+
   // Initialize map
   map = L.map('map').setView([-6.903, 107.6191], 10) // Bandung, Indonesia
 
@@ -295,24 +277,13 @@ onMounted(async () => {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map)
 
+  console.log('Map initialized, adding markers for', warehouseList.value.length, 'warehouses')
+
   // Add markers for loaded warehouses
   warehouseList.value.forEach((warehouse) => {
     addMarkerToMap(warehouse)
   })
 })
-
-function statusClass(status) {
-  switch (status) {
-    case 'Active':
-      return 'py-1 px-4 bg-green-500 rounded-full w-fit text-white text-sm'
-    case 'Inactive':
-      return 'py-1 px-4 bg-red-500 rounded-full w-fit text-white text-sm'
-    case 'Maintenance':
-      return 'py-1 px-4 bg-yellow-500 rounded-full w-fit text-white text-sm'
-    default:
-      return 'py-1 px-4 bg-gray-500 rounded-full w-fit text-white text-sm'
-  }
-}
 </script>
 
 <template>
@@ -334,169 +305,21 @@ function statusClass(status) {
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
         <h1 class="text-xl font-bold self-start md:self-center">Warehouse Map</h1>
+        <div v-if="isLoading" class="text-sm">
+          <i class="fa-solid fa-spinner fa-spin mr-2"></i>
+          Loading...
+        </div>
       </div>
       <div id="map" class="w-full h-full min-h-[400px]"></div>
     </div>
 
-    <div class="flex flex-col md:flex-row mt-10 pb-10 gap-4">
+    <div class="flex flex-col md:flex-row-reverse mt-10 pb-10 gap-4">
       <!-- Table Warehouse -->
-      <div class="rounded-xl max-h-fit w-full">
-        <div class="flex flex-col gap-4">
-          <!-- Enhanced Table -->
-          <div class="warehouse-grid overflow-x-auto shadow-lg rounded-xl w-full">
-            <table
-              class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
-            >
-              <thead class="bg-base text-white">
-                <tr>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                    @click="sortBy('code')"
-                  >
-                    Code
-                    <span v-if="sortKey === 'code'">
-                      <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                    </span>
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                    @click="sortBy('address')"
-                  >
-                    Address
-                    <span v-if="sortKey === 'address'">
-                      <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                    </span>
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                    @click="sortBy('status')"
-                  >
-                    Status
-                    <span v-if="sortKey === 'status'">
-                      <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                    </span>
-                  </th>
-                  <th
-                    class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                    @click="sortBy('created_at')"
-                  >
-                    Created At
-                    <span v-if="sortKey === 'created_at'">
-                      <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                    </span>
-                  </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200 text-base text-sm">
-                <tr
-                  v-for="(warehouse, index) in sortedWarehouses"
-                  :key="getWarehouseAttribute(warehouse, 'code') || warehouse.id"
-                  :class="[
-                    'hover:bg-gray-300 transition-colors',
-                    index % 2 === 0 ? 'bg-white' : 'bg-gray-100',
-                  ]"
-                >
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    {{ getWarehouseAttribute(warehouse, 'warehouse_code') }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap max-w-xs truncate">
-                    {{ getWarehouseAttribute(warehouse, 'warehouse_address') }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <p :class="statusClass(getWarehouseAttribute(warehouse, 'status_warehouse'))">
-                      {{ getWarehouseAttribute(warehouse, 'status_warehouse') }}
-                    </p>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    {{
-                      new Date(
-                        getWarehouseAttribute(warehouse, 'created_at') ||
-                          getWarehouseAttribute(warehouse, 'createdAt'),
-                      ).toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap flex gap-2">
-                    <div class="text-blue-500 hover:text-blue-700 text-xl">
-                      <button
-                        @click="showLocationOnMap(warehouse)"
-                        class="hover:scale-110 transition-transform"
-                        :title="`View ${getWarehouseAttribute(warehouse, 'name')} on map`"
-                      >
-                        <i class="fa-solid fa-eye"></i>
-                      </button>
-                    </div>
-                    <button
-                      @click="
-                        deleteWarehouse(warehouse.id, getWarehouseAttribute(warehouse, 'code'))
-                      "
-                      class="text-red-500 hover:text-red-700 text-xl hover:scale-110 transition-transform"
-                      :disabled="isLoading"
-                    >
-                      <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- No results state -->
-                <tr v-if="sortedAllWarehouses.length === 0 && !isLoading">
-                  <td colspan="5" class="text-center py-8">
-                    <div class="text-gray-500">
-                      <i class="fa-solid fa-warehouse text-4xl mb-2"></i>
-                      <p>No warehouses available</p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Enhanced Pagination -->
-          <div
-            id="pagination"
-            class="flex justify-between text-base px-4 text-sm items-center"
-            v-if="!isLoading"
-          >
-            <div>{{ startPageCount }} - {{ endPageCount }} of {{ sortedAllWarehouses.length }}</div>
-            <div class="flex gap-2 items-center" v-if="totalPages > 1">
-              <div
-                class="p-1 cursor-pointer"
-                :class="{ 'text-gray-400 cursor-not-allowed': currentPage === 1 }"
-                @click="prevPage()"
-              >
-                <i class="fa fa-angle-left"></i>
-              </div>
-              <div id="current-page" class="p-1 cursor-pointer">
-                <span>
-                  <input
-                    type="number"
-                    min="1"
-                    :max="totalPages"
-                    :value="currentPage"
-                    @input="goToPage(parseInt($event.target.value))"
-                    @keyup.enter="$event.target.blur()"
-                    class="px-2 py-1 max-w-[50px] text-center border rounded"
-                  />
-                </span>
-                <span class="ml-1 text-gray-500">/ {{ totalPages }}</span>
-              </div>
-              <div
-                class="p-1 cursor-pointer"
-                :class="{ 'text-gray-400 cursor-not-allowed': currentPage === totalPages }"
-                @click="nextPage()"
-              >
-                <i class="fa fa-angle-right"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <TableWarehouse
+        :warehouseList="warehouseList"
+        @deleteWarehouse="deleteWarehouse"
+        @showLocationOnMap="showLocationOnMap"
+      />
 
       <!-- Add Warehouse -->
       <div class="bg-white rounded-xl shadow w-full h-fit">
@@ -508,14 +331,67 @@ function statusClass(status) {
         <div class="px-6 py-2">
           <form @submit.prevent="addWarehouse" class="flex flex-col gap-4 my-4">
             <div class="flex flex-col gap-4 w-full">
-              <StandardFloatingInput
-                id="address"
-                type="text"
-                name="address"
-                placeholder="Warehouse Address"
-                label="Warehouse Address"
-                v-model="warehouseAddress"
-                class="max-w-md w-full"
+              <div class="flex flex-col md:flex-row gap-4">
+                <StandardFloatingInput
+                  id="address"
+                  type="text"
+                  name="address"
+                  placeholder="Warehouse Address"
+                  label="Warehouse Address"
+                  v-model="warehouseAddress"
+                  class="max-w-md w-full"
+                  required
+                />
+                <StandardFloatingInput
+                  id="name"
+                  type="text"
+                  name="name"
+                  placeholder="Warehouse Name"
+                  label="Warehouse Name"
+                  v-model="warehouseName"
+                  class="max-w-md w-full"
+                  required
+                />
+                <StandardFloatingInput
+                  id="code"
+                  type="text"
+                  name="code"
+                  placeholder="Warehouse Code"
+                  label="Warehouse Code"
+                  v-model="warehouseCode"
+                  class="max-w-md w-full"
+                  required
+                  disabled
+                />
+              </div>
+              <div class="flex flex-col md:flex-row gap-4">
+                <StandardFloatingInput
+                  id="warehouseLat"
+                  type="text"
+                  name="warehouseLat"
+                  placeholder="Latitude"
+                  label="Latitude"
+                  v-model="warehouseLat"
+                  class="max-w-md w-full"
+                  required
+                />
+                <StandardFloatingInput
+                  id="warehouseLng"
+                  type="text"
+                  name="warehouseLng"
+                  placeholder="Longitude"
+                  label="Longitude"
+                  v-model="warehouseLng"
+                  class="max-w-md w-full"
+                  required
+                />
+              </div>
+              <AutoCompleteInput
+                id="status"
+                label="Status"
+                v-model="warehouseStatus"
+                :options="statusOptions"
+                class="w-full"
                 required
               />
               <button
@@ -607,28 +483,5 @@ function statusClass(status) {
 
 .popup-address div {
   margin-bottom: 2px;
-}
-
-/* Warehouse table styles */
-.warehouse-grid {
-  overflow-x: auto;
-}
-
-.hover-table tbody tr:hover {
-  background-color: #f3f4f6;
-}
-
-/* Loading animation */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.animate-spin {
-  animation: spin 1s linear infinite;
 }
 </style>
