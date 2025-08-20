@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import dashboardImage from '@/assets/dashboard_preview.png'
 import inventoryImage from '@/assets/inventory_preview.png'
+import supplierImage from '@/assets/products_preview.png'
+import warehouseImage from '@/assets/warehouse_preview.png'
 
 // Data gambar - ganti dengan path gambar Anda
 const images = ref([
@@ -16,14 +18,14 @@ const images = ref([
     title: 'Inventory Management'
   },
   {
-    src: '@/assets/reports_preview.png',
-    alt: 'Reports Preview',
-    title: 'Analytics & Reports'
+    src: supplierImage,
+    alt: 'Suppliers Preview',
+    title: 'Supplier Management'
   },
   {
-    src: '@/assets/settings_preview.png',
-    alt: 'Settings Preview',
-    title: 'Application Settings'
+    src: warehouseImage,
+    alt: 'Warehouse Preview',
+    title: 'Warehouse Management'
   },
   {
     src: '@/assets/users_preview.png',

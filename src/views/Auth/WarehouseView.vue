@@ -333,16 +333,6 @@ onMounted(async () => {
             <div class="flex flex-col gap-4 w-full">
               <div class="flex flex-col md:flex-row gap-4">
                 <StandardFloatingInput
-                  id="address"
-                  type="text"
-                  name="address"
-                  placeholder="Warehouse Address"
-                  label="Warehouse Address"
-                  v-model="warehouseAddress"
-                  class="max-w-md w-full"
-                  required
-                />
-                <StandardFloatingInput
                   id="name"
                   type="text"
                   name="name"
@@ -364,6 +354,16 @@ onMounted(async () => {
                   disabled
                 />
               </div>
+              <StandardFloatingInput
+                id="address"
+                type="text"
+                name="address"
+                placeholder="Warehouse Address"
+                label="Warehouse Address"
+                v-model="warehouseAddress"
+                class=" w-full"
+                required
+              />
               <div class="flex flex-col md:flex-row gap-4">
                 <StandardFloatingInput
                   id="warehouseLat"

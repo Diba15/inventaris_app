@@ -5,93 +5,63 @@ import SupplierCard from '@/components/supplier/SupplierCard.vue'
 const dummySupplierList = ref([
   {
     id: 1,
-    name: 'Supplier 1',
+    name: 'P.T Indofood',
     arrive_at: '2022-01-01',
     courier_name: 'JNE',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Indofood_logo-en.svg/2560px-Indofood_logo-en.svg.png',
     total_cost: 10000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-01 00:00:00',
   },
   {
     id: 2,
-    name: 'Supplier 2',
+    name: 'Unilever',
     arrive_at: '2022-01-02',
     courier_name: 'J&T',
+    img: 'https://upload.wikimedia.org/wikipedia/id/3/37/Unilever.png',
     total_cost: 20000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-02 00:00:00',
   },
   {
     id: 3,
-    name: 'Supplier 3',
+    name: 'Wings Group',
     arrive_at: '2022-01-03',
     courier_name: 'SiCepat',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Wings_%28Indonesian_company%29_logo.svg',
     total_cost: 30000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-03 00:00:00',
   },
   {
     id: 4,
-    name: 'Supplier 4',
+    name: 'Orang Tua',
     arrive_at: '2022-01-04',
     courier_name: 'JNE',
+    img: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6rsc0issrrP5wz90_ALseipslxuZq40VxV5HzFFtGCVCE2XeQPk8ZoRQWBPCRsVtAHwFDYsCQyqJqpuuEP71wdKHjC8gdFdam-wNfsbwiFrQCtByDJdov1Llh9bnI9NfIx-JIDq7fUB14PpPKqG0oDadVNmedyploPT9JiWF_98UVLnjRjXyRpnnMZszG/s804/ot-svg.webp',
     total_cost: 40000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-04 00:00:00',
   },
   {
     id: 5,
-    name: 'Supplier 5',
+    name: 'Nestle',
     arrive_at: '2022-01-05',
     courier_name: 'J&T',
+    img: 'https://logos-world.net/wp-content/uploads/2020/09/Nestle-Logo.png',
     total_cost: 50000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-05 00:00:00',
   },
   {
     id: 6,
-    name: 'Supplier 6',
+    name: 'Mayora',
     arrive_at: '2022-01-06',
     courier_name: 'SiCepat',
+    img: '',
     total_cost: 60000,
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-06 00:00:00',
-  },
-  {
-    id: 7,
-    name: 'Supplier 7',
-    arrive_at: '2022-01-07',
-    courier_name: 'JNE',
-    total_cost: 70000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-07 00:00:00',
-  },
-  {
-    id: 8,
-    name: 'Supplier 8',
-    arrive_at: '2022-01-08',
-    courier_name: 'J&T',
-    total_cost: 80000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-08 00:00:00',
-  },
-  {
-    id: 9,
-    name: 'Supplier 9',
-    arrive_at: '2022-01-09',
-    courier_name: 'SiCepat',
-    total_cost: 90000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-09 00:00:00',
-  },
-  {
-    id: 10,
-    name: 'Supplier 10',
-    arrive_at: '2022-01-10',
-    courier_name: 'JNE',
-    total_cost: 100000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-10 00:00:00',
   },
 ])
 
@@ -328,6 +298,7 @@ function highlightSearchTerm(text, searchTerm) {
             :courier="supplier.courier_name"
             :cost="supplier.total_cost"
             :arrive-date="supplier.arrive_at"
+            :img="supplier.img"
             class="supplier-card-item"
             :class="{ highlighted: isSearching }"
           />
