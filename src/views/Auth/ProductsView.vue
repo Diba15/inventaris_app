@@ -248,6 +248,8 @@ onMounted(() => {
     if (categories.value.length === 0) {
       getCategories() // Fetch categories when the component is mounted
     }
+    console.log(categories.value)
+
     getProducts() // Fetch products when the component is mounted
     watchEffect(() => {
       if (!selectedCategory.value || products.value.length === 0) {
