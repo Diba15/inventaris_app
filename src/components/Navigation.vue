@@ -79,7 +79,7 @@ function toggleProfileMenu() {
     <div>
       <div class="flex gap-10 justify-between items-center" :class="{ 'justify-center': !isOpen }">
         <h1 class="text-md font-bold" :class="{ hidden: !isOpen }">Inventaris App</h1>
-        <button @click="toggleMenu" class="text-2xl">
+        <button @click="toggleMenu" class="text-2xl bg-secondary/10 p-2 rounded-lg hover:bg-secondary/20 transition-colors">
           <span><img src="@/assets/Pane.svg" alt="" width="25" height="25" /></span>
         </button>
       </div>
@@ -99,7 +99,7 @@ function toggleProfileMenu() {
       </ul>
     </div>
 
-    <div>
+    <div :class="{'bg-secondary/10 p-3 rounded-lg' : isOpen}">
       <div
         v-if="isAuthenticated.value"
         id="user"

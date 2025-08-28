@@ -121,7 +121,7 @@ watch(
       <!-- Profile Menu -->
       <div
         id="profile_menu"
-        class="flex flex-col gap-2 text-sm mb-3 items-start bg-sub text-base p-4 rounded h-fit min-w-40 absolute left-5 bottom-15 shadow-lg z-50"
+        class="flex flex-col gap-2 text-sm mb-3 items-start bg-sub text-base p-4 rounded h-fit min-w-40 absolute left-5 bottom-15 shadow-lg z-[9999]"
         :class="{ hidden: !profileToggle }"
       >
         <div

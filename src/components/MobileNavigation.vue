@@ -77,7 +77,7 @@ function toggleProfileMenu() {
       </button>
 
       <!-- User Profile -->
-      <div>
+      <div class="bg-secondary/10 p-3 rounded-lg">
         <div
           v-if="isAuthenticated.value"
           id="user"
