@@ -16,7 +16,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['deleteUser', 'openDeleteModal'])
+const emit = defineEmits(['openDeleteModal'])
 const startPage = ref(0)
 const totalData = ref(0)
 const currentPage = ref(1)

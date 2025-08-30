@@ -1,5 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
+import Eye from './Eye.vue'
+import EyeWithSlash from './EyeWithSlash.vue'
 
 // Props
 const props = defineProps({
@@ -52,6 +54,7 @@ const inputType = computed(() => {
   }
   return props.type
 })
+const isPasswordField = computed(() => props.type === 'password')
 
 // Methods
 const handleFocus = (event) => {
@@ -66,6 +69,10 @@ const handleBlur = (event) => {
 
 const handlePriceInput = (event) => {
   emit('handlePriceInput', event)
+}
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
 }
 </script>
 
@@ -87,6 +94,7 @@ const handlePriceInput = (event) => {
         error: hasError,
         disabled: disabled,
         filled: modelValue || isFocused,
+        'with-icon': isPasswordField,
       }"
       placeholder=" "
     />
@@ -107,6 +115,7 @@ const handlePriceInput = (event) => {
         error: hasError,
         disabled: disabled,
         filled: modelValue || isFocused,
+        'with-icon': isPasswordField,
       }"
       placeholder=" "
     />
@@ -122,6 +131,22 @@ const handlePriceInput = (event) => {
     >
       {{ label }}
     </label>
+
+    <!-- Password toggle button -->
+    <button
+      v-if="isPasswordField"
+      type="button"
+      @click="togglePasswordVisibility"
+      class="password-toggle"
+      :class="{ error: hasError }"
+      tabindex="-1"
+    >
+      <!-- Eye open icon (password hidden - click to show) -->
+      <Eye v-if="!showPassword" class="password-icon" />
+
+      <!-- Eye closed icon (password visible - click to hide) -->
+      <EyeWithSlash v-else class="password-icon" />
+    </button>
 
     <!-- Error message -->
     <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600">
