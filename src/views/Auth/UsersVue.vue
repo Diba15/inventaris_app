@@ -18,7 +18,7 @@ const roleOptions = [
   { value: 'employee', label: 'Employee' },
 ]
 
-const getRoles = async() => {
+const getRoles = async () => {
   try {
     const response = await fetch(`${STRAPI_URL}/api/roles`, {
       headers: {
@@ -61,12 +61,15 @@ function addUsers() {
     role: selectedRole.value,
   }
 
-  axios.post(`${STRAPI_URL}/api/auth/local/register`, dataUser).then((response) => {
-    console.log('User registered:', response.data)
-    // Optionally, refresh the user list or provide feedback to the user
-  }).catch((error) => {
-    console.error('Error registering user:', error)
-  })
+  axios
+    .post(`${STRAPI_URL}/api/auth/local/register`, dataUser)
+    .then((response) => {
+      console.log('User registered:', response.data)
+      // Optionally, refresh the user list or provide feedback to the user
+    })
+    .catch((error) => {
+      console.error('Error registering user:', error)
+    })
 }
 
 onMounted(async () => {
@@ -82,10 +85,19 @@ onMounted(async () => {
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
         <h1 class="text-xl font-bold self-start md:self-center">Add User</h1>
+        <button
+          @click="addUsers"
+          class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-sub/90 transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+        >
+          Add User
+        </button>
       </div>
 
       <div class="min-h-[250px] p-4">
-        <form class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" @submit.prevent="addUsers">
+        <form
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          @submit.prevent="addUsers"
+        >
           <StandardFloatingInput
             label="Username"
             type="text"
@@ -120,14 +132,6 @@ onMounted(async () => {
             required
             class="w-full max-w-md"
           />
-          <div class="col-span-full flex justify-end">
-            <button
-              type="submit"
-              class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-            >
-              Add User
-            </button>
-          </div>
         </form>
       </div>
     </div>

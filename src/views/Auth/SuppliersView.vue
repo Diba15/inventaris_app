@@ -278,7 +278,7 @@ function highlightSearchTerm(text, searchTerm) {
         </div>
 
         <!-- Search Results Info for Cards -->
-        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600">
+        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600 text-center">
           <span v-if="filteredSuppliersForCards.length > 0">
             Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
           </span>
