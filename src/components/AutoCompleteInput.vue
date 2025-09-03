@@ -38,7 +38,7 @@
       <button
         v-if="selectedValue && !disabled"
         type="button"
-        @click="clearSelection"
+        @mousedown.prevent="clearSelection"
         class="clear-button"
         tabindex="-1"
       >
@@ -50,7 +50,7 @@
       <!-- Dropdown arrow -->
       <button
         type="button"
-        @click="toggleDropdown"
+        @mousedown.prevent="toggleDropdown"
         class="dropdown-arrow"
         :class="{
           'open': isDropdownOpen,
@@ -73,7 +73,7 @@
         <div
           v-for="(option, index) in filteredOptions"
           :key="getOptionValue(option)"
-          @click="selectOption(option)"
+          @mousedown.prevent="selectOption(option)"
           @mouseenter="highlightedIndex = index"
           class="dropdown-option"
           :class="{
@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 
 // Props
 const props = defineProps({
@@ -132,11 +132,11 @@ const props = defineProps({
   },
   optionLabel: {
     type: String,
-    default: 'label', // Key untuk label dari object
+    default: 'label',
   },
   optionValue: {
     type: String,
-    default: 'value', // Key untuk value dari object
+    default: 'value',
   },
   required: {
     type: Boolean,
@@ -171,29 +171,28 @@ const selectedValue = ref(props.modelValue)
 const hasError = computed(() => !!props.errorMessage)
 
 const displayValue = computed(() => {
-  // Selama user sedang mengetik (focus dan ada searchQuery), tampilkan searchQuery
+  // Jika user sedang mengetik dan ada searchQuery
   if (isFocused.value && searchQuery.value !== '') {
     return searchQuery.value
   }
 
-  // Jika ada selectedValue dan user tidak sedang mengetik, tampilkan label yang dipilih
-  if (selectedValue.value && (!isFocused.value || searchQuery.value === '')) {
+  // Jika ada selectedValue, tampilkan label yang sesuai
+  if (selectedValue.value !== '' && selectedValue.value != null) {
     const selectedOption = props.options.find(option =>
       getOptionValue(option) === selectedValue.value
     )
-    return selectedOption ? getOptionLabel(selectedOption) : ''
+    return selectedOption ? getOptionLabel(selectedOption) : selectedValue.value
   }
 
-  return searchQuery.value
+  // Default return empty
+  return ''
 })
 
 const filteredOptions = computed(() => {
-  // Jika tidak ada searchQuery, tampilkan semua options
   if (!searchQuery.value || searchQuery.value.trim() === '') {
     return props.options
   }
 
-  // Filter berdasarkan searchQuery
   return props.options.filter(option => {
     const label = getOptionLabel(option)
     return label.toLowerCase().includes(searchQuery.value.toLowerCase().trim())
@@ -219,13 +218,22 @@ const handleInput = (event) => {
   const inputValue = event.target.value
   searchQuery.value = inputValue
 
-  // Jika user menghapus semua text, reset selectedValue
+  // Reset selected value jika user mulai mengetik yang berbeda
   if (inputValue === '') {
     selectedValue.value = ''
     emit('update:modelValue', '')
+  } else if (selectedValue.value) {
+    // Cek apakah input value berbeda dengan current selection
+    const currentSelectedOption = props.options.find(option =>
+      getOptionValue(option) === selectedValue.value
+    )
+    if (currentSelectedOption && getOptionLabel(currentSelectedOption) !== inputValue) {
+      selectedValue.value = ''
+      emit('update:modelValue', '')
+    }
   }
 
-  // Buka dropdown jika belum terbuka
+  // Buka dropdown
   if (!isDropdownOpen.value) {
     isDropdownOpen.value = true
   }
@@ -235,10 +243,8 @@ const handleInput = (event) => {
 const handleFocus = (event) => {
   isFocused.value = true
 
-  // Jika ada selectedValue, set searchQuery ke kosong untuk memungkinkan pencarian baru
-  if (selectedValue.value) {
-    searchQuery.value = ''
-  }
+  // Clear search query untuk memungkinkan pencarian baru
+  searchQuery.value = ''
 
   if (props.filterOnFocus) {
     isDropdownOpen.value = true
@@ -247,44 +253,44 @@ const handleFocus = (event) => {
 }
 
 const handleBlur = (event) => {
-  // Delay blur to allow click events on dropdown
+  // Gunakan setTimeout untuk memberikan waktu bagi click event
   setTimeout(() => {
+    if (!isDropdownOpen.value) return // Jika sudah ditutup, skip
+
     isFocused.value = false
     isDropdownOpen.value = false
-
-    // Jika ada searchQuery tapi tidak ada yang dipilih, reset
-    if (searchQuery.value && !selectedValue.value) {
-      searchQuery.value = ''
-    }
-
-    // Jika user keluar tanpa memilih apapun dan field kosong, pastikan tetap kosong
-    if (!selectedValue.value) {
-      searchQuery.value = ''
-    }
+    searchQuery.value = ''
+    highlightedIndex.value = -1
 
     emit('blur', event)
-  }, 200)
+  }, 150)
 }
 
 const handleKeydown = (event) => {
-  if (!isDropdownOpen.value) {
-    if (event.key === 'ArrowDown' || event.key === 'Enter') {
-      isDropdownOpen.value = true
-      return
-    }
+  if (!isDropdownOpen.value && (event.key === 'ArrowDown' || event.key === 'Enter')) {
+    event.preventDefault()
+    isDropdownOpen.value = true
+    highlightedIndex.value = filteredOptions.value.length > 0 ? 0 : -1
+    return
   }
+
+  if (!isDropdownOpen.value) return
 
   switch (event.key) {
     case 'ArrowDown':
       event.preventDefault()
       if (highlightedIndex.value < filteredOptions.value.length - 1) {
         highlightedIndex.value++
+      } else {
+        highlightedIndex.value = 0 // Loop ke awal
       }
       break
     case 'ArrowUp':
       event.preventDefault()
       if (highlightedIndex.value > 0) {
         highlightedIndex.value--
+      } else {
+        highlightedIndex.value = filteredOptions.value.length - 1 // Loop ke akhir
       }
       break
     case 'Enter':
@@ -294,8 +300,10 @@ const handleKeydown = (event) => {
       }
       break
     case 'Escape':
+      event.preventDefault()
       isDropdownOpen.value = false
       highlightedIndex.value = -1
+      searchQuery.value = ''
       break
   }
 }
@@ -309,12 +317,24 @@ const selectOption = (option) => {
 
   emit('update:modelValue', value)
   emit('select', option)
+
+  // Focus kembali ke input setelah selection
+  nextTick(() => {
+    const input = autocompleteRef.value?.querySelector('input')
+    input?.focus()
+  })
 }
 
 const clearSelection = () => {
   selectedValue.value = ''
   searchQuery.value = ''
   emit('update:modelValue', '')
+
+  // Focus ke input setelah clear
+  nextTick(() => {
+    const input = autocompleteRef.value?.querySelector('input')
+    input?.focus()
+  })
 }
 
 const toggleDropdown = () => {
@@ -322,19 +342,11 @@ const toggleDropdown = () => {
 
   isDropdownOpen.value = !isDropdownOpen.value
   if (isDropdownOpen.value) {
+    highlightedIndex.value = filteredOptions.value.length > 0 ? 0 : -1
     nextTick(() => {
       const input = autocompleteRef.value?.querySelector('input')
       input?.focus()
     })
-  }
-}
-
-// Watch for external modelValue changes
-const updateSelectedValue = () => {
-  selectedValue.value = props.modelValue
-  // Reset searchQuery when modelValue changes externally
-  if (!isFocused.value) {
-    searchQuery.value = ''
   }
 }
 
@@ -343,11 +355,17 @@ const handleClickOutside = (event) => {
   if (autocompleteRef.value && !autocompleteRef.value.contains(event.target)) {
     isDropdownOpen.value = false
     highlightedIndex.value = -1
+    isFocused.value = false
+    searchQuery.value = ''
   }
 }
 
+// Watch for external modelValue changes
+watch(() => props.modelValue, (newValue) => {
+  selectedValue.value = newValue
+}, { immediate: true })
+
 onMounted(() => {
-  updateSelectedValue()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -372,7 +390,7 @@ onUnmounted(() => {
 .autocomplete-input:focus,
 .autocomplete-input.dropdown-open {
   border-color: #f2b418;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(242, 180, 24, 0.1);
 }
 
 .autocomplete-input.error {
@@ -419,7 +437,6 @@ onUnmounted(() => {
   color: #9ca3af;
 }
 
-/* Label positioning rules */
 .autocomplete-input:focus + .autocomplete-label,
 .autocomplete-input.filled + .autocomplete-label {
   top: 0;
@@ -511,6 +528,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.15s ease;
   border-bottom: 1px solid #f3f4f6;
+  user-select: none;
 }
 
 .dropdown-option:last-child {
@@ -528,7 +546,7 @@ onUnmounted(() => {
 }
 
 .dropdown-option.selected:hover {
-  background-color: #f2b418;
+  background-color: #e6a515;
 }
 
 .dropdown-option.no-results {

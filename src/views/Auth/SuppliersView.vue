@@ -256,7 +256,7 @@ function highlightSearchTerm(text, searchTerm) {
             type="text"
             id="searchSupplier"
             placeholder="Search suppliers by name, courier, cost, or description..."
-            class="mb-2 p-2.5 rounded-s-xl w-full max-w-[600px] bg-white border-l border-t border-b border-black text-base focus:outline-none placeholder:text-center"
+            class="mb-2 p-2.5 rounded-s-xl w-full max-w-[600px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none placeholder:text-center"
             @input="handleSearch"
             :value="searchTerm"
           />
@@ -265,7 +265,7 @@ function highlightSearchTerm(text, searchTerm) {
           <button
             v-if="isSearching"
             @click="clearSearch"
-            class="mb-2 bg-white p-2.5 border-t border-b border-black text-gray-500 hover:text-gray-700 focus:outline-none"
+            class="mb-2 bg-white p-2.5 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
             title="Clear search"
           >
             <i class="fa fa-times"></i>
@@ -273,12 +273,12 @@ function highlightSearchTerm(text, searchTerm) {
 
           <!-- Search icon -->
           <i
-            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-e-xl text-gray-400 border-r border-t border-b border-black"
+            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-e-xl text-gray-400 border-r border-t border-b border-[#d1d5db]"
           ></i>
         </div>
 
         <!-- Search Results Info for Cards -->
-        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600">
+        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600 text-center">
           <span v-if="filteredSuppliersForCards.length > 0">
             Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
           </span>

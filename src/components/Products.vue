@@ -187,7 +187,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
         type="text"
         id="searchProduct"
         placeholder="Search by name, code, description, price, or quantity..."
-        class="mb-2 px-2 py-1 rounded-l w-full max-w-[400px] bg-white border-l border-t border-b border-black text-base focus:outline-none"
+        class="mb-2 px-2 py-1 rounded-l w-full max-w-[400px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none"
         @input="handleSearch"
         :value="searchTerm"
       />
@@ -196,7 +196,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
       <button
         v-if="isSearching"
         @click="clearSearch"
-        class="mb-2 bg-white px-2 py-1 border-t border-b border-black text-gray-500 hover:text-gray-700 focus:outline-none"
+        class="mb-2 bg-white px-2 py-1 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
         title="Clear search"
       >
         <i class="fa fa-times"></i>
@@ -204,7 +204,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
 
       <!-- Search icon -->
       <i
-        class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-black"
+        class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-[#d1d5db]"
       ></i>
     </div>
 
