@@ -2,7 +2,7 @@
 import UserTable from '@/components/user/UserTable.vue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
-import AlertComponent from '@/components/AlertComponent.vue'
+import ConfirmationDeleteUser from '@/components/user/ConfirmationDeleteUser.vue'
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
@@ -221,7 +221,7 @@ onMounted(async () => {
 
     <!-- Table Users -->
     <user-table :users="users" @deleteUser="deleteUsers" @open-delete-modal="openDeleteModal" />
-    <alert-component
+    <ConfirmationDeleteUser
       :message="message"
       :show="show"
       @close="show = false"

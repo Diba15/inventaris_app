@@ -159,10 +159,12 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
       <input
         type="text"
         id="searchUser"
+        name="searchUser"
         placeholder="Search by username, email, role..."
         class="mb-2 px-2 py-1 rounded-l w-full max-w-[400px] bg-white border-l border-t border-b border-black text-base focus:outline-none"
         @input="handleSearch"
         :value="searchTerm"
+        autocomplete="off"
       />
       <button
         v-if="isSearching"

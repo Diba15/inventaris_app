@@ -97,6 +97,7 @@ const togglePasswordVisibility = () => {
         'with-icon': isPasswordField,
       }"
       placeholder=" "
+      autocomplete="off"
     />
 
     <input
@@ -118,6 +119,7 @@ const togglePasswordVisibility = () => {
         'with-icon': isPasswordField,
       }"
       placeholder=" "
+      autocomplete="off"
     />
 
     <label
