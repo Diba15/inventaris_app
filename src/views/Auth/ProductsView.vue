@@ -380,12 +380,15 @@ function clearImageHandle() {
                     class="w-full max-w-md"
                     @select="handleCategorySelect"
                   />
-                  <input
-                    name="product_code"
+                  <StandardFloatingInput
+                    id="product_code"
                     type="text"
-                    class="border border-base p-2 rounded w-full max-w-fit bg-gray-100 text-base"
+                    name="product_code"
+                    placeholder="Product Code"
+                    label="Product Code"
                     v-model="codeProduct"
-                    disabled
+                    class="max-w-md w-full"
+                    :disabled="true"
                   />
                 </div>
                 <div class="flex flex-col flex-wrap gap-4 w-full">
