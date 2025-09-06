@@ -3,6 +3,7 @@ import products_component from '@/components/Products.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
+import FloatingInputWithImage from '@/components/FloatingInputWithImage.vue'
 import { onMounted, ref, watchEffect } from 'vue'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import axios from 'axios'
@@ -19,6 +20,22 @@ const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
 const loadingShow = ref(false)
 const imageDelete = ref(null)
+const tab = ref('inbounds') // 'inbounds' or 'outbounds'
+
+// Reactive Variable for input
+const selectedCategory = ref('')
+const codeProduct = ref('')
+const nameProduct = ref('')
+const descriptionProduct = ref('')
+const priceProduct = ref('')
+const quantityProduct = ref(1)
+const imageInput = ref(null)
+
+// Reactive Variable for outbound input
+const selectedProductOutbound = ref('')
+const quantityOutbound = ref(1)
+const destinationOutbound = ref('')
+const notesOutbound = ref('')
 
 // Retrieve categories and products from localStorage if available
 try {
@@ -121,15 +138,6 @@ const getNextAvailableProductCode = (categoryName) => {
 
   return `${categoryName}_${i}`
 }
-
-// Reactive Variable for input
-const selectedCategory = ref('')
-const codeProduct = ref('')
-const nameProduct = ref('')
-const descriptionProduct = ref('')
-const priceProduct = ref('')
-const quantityProduct = ref(1)
-const imageInput = ref(null)
 
 // Handle price input to format it correctly
 function handlePriceInput(event) {
@@ -306,7 +314,28 @@ function clearImageHandle() {
 <template>
   <div class="px-4">
     <div class="mt-4">
-      <div class="bg-white rounded-xl mb-4 shadow">
+      <!-- Tabs of Inbounds and Outbounds Items -->
+      <div class="mb-4">
+        <div class="flex border-b border-gray-200">
+          <button
+            class="px-4 py-2 font-semibold focus:outline-none"
+            :class="tab === 'inbounds' ? 'border-b-2 border-sub text-sub' : 'text-gray-500'"
+            @click="tab = 'inbounds'"
+          >
+            Inbounds
+          </button>
+          <button
+            class="px-4 py-2 font-semibold focus:outline-none"
+            :class="tab === 'outbounds' ? 'border-b-2 border-sub text-sub' : 'text-gray-500'"
+            @click="tab = 'outbounds'"
+          >
+            Outbounds
+          </button>
+        </div>
+      </div>
+
+      <!-- Add Product Form -->
+      <div class="bg-white rounded-xl mb-4 shadow" v-if="tab === 'inbounds'">
         <div
           class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
         >
@@ -439,6 +468,81 @@ function clearImageHandle() {
           </form>
         </div>
       </div>
+
+      <!-- Outbounds Items Form -->
+      <div class="bg-white rounded-xl mb-4 shadow" v-if="tab === 'outbounds'">
+        <div
+          class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        >
+          <h1 class="text-xl font-bold self-start md:self-center">Add Outbound Items</h1>
+          <button
+            type="button"
+            class="self-end-safe bg-sub text-white px-4 py-2 min-w-[100px] h-[40px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
+          >
+            Add Outbound
+          </button>
+        </div>
+        <div class="px-6 py-2">
+          <form
+            method="post"
+            enctype="multipart/form-data"
+            action=""
+            id="add_outbound"
+            class="flex flex-col gap-4 my-4"
+            @submit.prevent
+          >
+            <div class="flex flex-col md:flex-row gap-4 items-center w-full">
+              <div class="flex flex-col gap-4 w-full">
+                <div class="flex flex-col md:flex-row gap-4">
+                  <FloatingInputWithImage
+                    id="outbound_product"
+                    label="Select Product"
+                    placeholder="Type to search products..."
+                    v-model="selectedProductOutbound"
+                    :options="products"
+                    option-label="product_name"
+                    option-value="Product_code"
+                    image-src=""
+                    :required="true"
+                    class="w-full"
+                    @select="handleCategorySelect"
+                  />
+                  <StandardFloatingInput
+                    id="outbound_quantity"
+                    type="number"
+                    name="outbound_quantity"
+                    placeholder="Quantity"
+                    label="Quantity"
+                    v-model="quantityOutbound"
+                    class="w-full"
+                  />
+                </div>
+                <div class="flex flex-col md:flex-row gap-4">
+                  <StandardFloatingInput
+                    id="outbound_destination"
+                    type="text"
+                    name="outbound_destination"
+                    placeholder="Destination"
+                    label="Destination"
+                    v-model="destinationOutbound"
+                    class="w-full"
+                  />
+                  <StandardFloatingInput
+                    id="outbound_notes"
+                    type="text"
+                    name="outbound_notes"
+                    placeholder="Notes (optional)"
+                    label="Notes (optional)"
+                    v-model="notesOutbound"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <products_component
         @deleteProduct="deleteProduct"
         @openDeleteModal="openDeleteModal"

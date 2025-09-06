@@ -59,12 +59,12 @@ const router = createRouter({
       }
     },
     {
-      path: '/products',
-      name: 'products',
+      path: '/transactions',
+      name: 'transactions',
       component: ProductsView,
       meta: {
-        title: 'Products',
-        description: 'Manage your products efficiently',
+        title: 'Transactions',
+        description: 'Manage your inventory transactions',
         requiresAuth: true
       }
     },

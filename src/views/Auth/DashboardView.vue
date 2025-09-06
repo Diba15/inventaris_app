@@ -3,17 +3,16 @@ defineOptions({
   name: 'DashboardView',
 })
 
-import { reactive, nextTick, computed, ref } from 'vue' // tambahkan ref
+import { reactive, nextTick, computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import StatCard from '@/components/StatCard.vue'
 
-// Ubah menjadi proper ref
 const chartRef = ref(null)
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 const state = reactive({
   isDropdownOpen: false,
-  selectedFilter: { label: 'Yearly', value: 'yearly' }, // Default to Yearly
+  selectedFilter: { label: 'Yearly', value: 'yearly' },
   chartOptions: {
     chart: {
       type: 'line',
@@ -34,24 +33,12 @@ const state = reactive({
       decimalPoint: ',',
       thousandsSep: '.',
     },
-    // Disable accessibility warning
     accessibility: {
       enabled: false
     },
     xAxis: {
       categories: [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ],
       min: 0,
       max: 7,
@@ -64,13 +51,17 @@ const state = reactive({
     },
     yAxis: {
       title: {
-        text: 'Revenue (in USD)',
+        text: 'Jumlah Barang',
       },
     },
     series: [
       {
-        name: '2025',
-        data: [1200, 1500, 1700, 2000, 2300, 2500, 2700, 3000, 3200, 3500, 3700, 4000],
+        name: 'Inbound Items',
+        data: [120, 150, 170, 200, 230, 250, 270, 300, 320, 350, 370, 400],
+      },
+      {
+        name: 'Outbound Items',
+        data: [80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300],
       },
     ],
     credits: {
@@ -85,7 +76,6 @@ const filterOptions = [
   { label: 'Yearly', value: 'yearly' },
 ]
 
-// Initialize from localStorage if exists
 const storageFilter = localStorage.getItem('selectedFilter')
 if (storageFilter) {
   const parsedFilter = JSON.parse(storageFilter)
@@ -110,102 +100,73 @@ const changeFilter = (filter) => {
 }
 
 const statData = [
-  { title: 'Total Revenue', value: '1,234', icon: 'fa-chart-pie', color: 'bg-sub', textColor: 'text-sub' },
-  { title: 'Total Receipt', value: '1,234', icon: 'fa-receipt', color: 'bg-purple-500', textColor: 'text-purple-500' },
-  { title: 'Customers', value: '1,234', icon: 'fa-users', color: 'bg-blue-500', textColor: 'text-blue-500' },
+  { title: 'Inbounds Items', value: '1,234', icon: 'fa-boxes-packing', color: 'bg-sub', textColor: 'text-sub' },
+  { title: 'Outbounds Items', value: '1,234', icon: 'fa-dolly', color: 'bg-purple-500', textColor: 'text-purple-500' },
+  { title: 'Total Supplier', value: '1,234', icon: 'fa-users', color: 'bg-blue-500', textColor: 'text-blue-500' },
 ]
 
 const updateChartData = (filter) => {
   let categories = []
-  let dummyData = []
-  let name = '2025'
+  let barangMasuk = []
+  let barangKeluar = []
 
   switch (filter.value) {
     case 'weekly':
       categories = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8']
-      dummyData = [100, 200, 150, 300, 250, 400, 350, 500]
-      name = 'This Month'
+      barangMasuk = [10, 20, 15, 30, 25, 40, 35, 50]
+      barangKeluar = [8, 15, 12, 25, 20, 30, 28, 40]
       break
     case 'monthly':
       categories = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ]
-      dummyData = [1200, 1500, 1700, 2000, 2300, 2500, 2700, 3000, 3200, 3500, 3700, 4000]
-      name = '2025'
+      barangMasuk = [120, 150, 170, 200, 230, 250, 270, 300, 320, 350, 370, 400]
+      barangKeluar = [80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300]
       break
     case 'yearly':
       categories = [
-        '2019',
-        '2020',
-        '2021',
-        '2022',
-        '2023',
-        '2024',
-        '2025',
-        '2026',
-        '2027',
-        '2028',
-        '2029',
-        '2030',
+        '2019', '2020', '2021', '2022', '2023', '2024', '2025', '2026', '2027', '2028', '2029', '2030',
       ]
-      dummyData = [
-        12000, 15000, 17000, 20000, 23000, 25000, 27000, 30000, 32000, 35000, 37000, 40000,
-      ]
-      name = 'Year'
+      barangMasuk = [1200, 1500, 1700, 2000, 2300, 2500, 2700, 3000, 3200, 3500, 3700, 4000]
+      barangKeluar = [800, 1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600, 2800, 3000]
       break
     default:
       categories = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ]
-      dummyData = [1200, 1500, 1700, 2000, 2300, 2500, 2700, 3000, 3200, 3500, 3700, 4000]
-      name = '2025'
+      barangMasuk = [120, 150, 170, 200, 230, 250, 270, 300, 320, 350, 370, 400]
+      barangKeluar = [80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300]
       break
   }
 
-  // Update chartOptions directly (reactive will handle the reactivity)
   state.chartOptions.xAxis.categories = categories
   state.chartOptions.series = [
     {
-      name: name,
-      data: dummyData,
+      name: 'Inbound Items',
+      data: barangMasuk,
+    },
+    {
+      name: 'Outbound Items',
+      data: barangKeluar,
     },
   ]
 
   saveFilter()
 
-  // Use nextTick to ensure DOM is updated before accessing chart
   nextTick(() => {
-    if (chartRef.value && chartRef.value.chart) { // gunakan .value
+    if (chartRef.value && chartRef.value.chart) {
       chartRef.value.chart.update({
         xAxis: {
           categories: categories,
         },
         series: [
           {
-            name: name,
-            data: dummyData,
+            name: 'Inbound Items',
+            data: barangMasuk,
+          },
+          {
+            name: 'Outbound Items',
+            data: barangKeluar,
           },
         ],
       })
@@ -213,7 +174,6 @@ const updateChartData = (filter) => {
   })
 }
 
-// Initialize chart data based on selected filter
 updateChartData(state.selectedFilter)
 </script>
 
@@ -260,7 +220,7 @@ updateChartData(state.selectedFilter)
     <!-- Chart -->
     <div class="mt-5 bg-white text-base shadow rounded-md mx-4">
       <div class="flex justify-between items-center px-4 pt-4 bg-base rounded-t-md">
-        <h2 class="text-xl font-bold mb-4 text-white">Revenue</h2>
+        <h2 class="text-xl font-bold mb-4 text-white">Inventory Flow</h2>
         <div>
           <button
             class="flex gap-2 items-center font-bold cursor-pointer text-white"
@@ -286,7 +246,6 @@ updateChartData(state.selectedFilter)
         </div>
       </div>
       <div class="flex justify-center place-content-center h-[300px] my-10 w-full text-base">
-        <!-- Placeholder for chart component -->
         <highcharts
           id="chart"
           class="mx-auto w-full max-w-5xl"

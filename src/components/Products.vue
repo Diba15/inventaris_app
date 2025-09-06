@@ -297,17 +297,17 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
             <td class="px-6 py-4 whitespace-nowrap">
               <span v-html="highlightSearchTerm(product.product_description, searchTerm)"></span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-6 py-4 whitespace-nowrap text-green-600 font-semibold">
               Rp.<span
                 v-html="highlightSearchTerm(product.product_price?.toString() || '', searchTerm)"
               ></span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-semibold">
               <span
                 v-html="highlightSearchTerm(product.product_qty?.toString() || '', searchTerm)"
               ></span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-6 py-4 whitespace-nowrap text-gray-500">
               {{
                 new Date(product.createdAt).toLocaleDateString('id-ID', {
                   year: 'numeric',
