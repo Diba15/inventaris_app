@@ -1,5 +1,6 @@
 <script setup>
 import products_component from '@/components/Products.vue'
+import ProductOutboundComponent from '@/components/ProductOutboundComponent.vue'
 import AlertComponent from '@/components/AlertComponent.vue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
@@ -39,6 +40,8 @@ const selectedProductOutbound = ref('')
 const quantityOutbound = ref(1)
 const destinationOutbound = ref('')
 const notesOutbound = ref('')
+const outboundsData = ref([])
+const totalDataOnMountedOutbound = ref(outboundsData?.value.length) // Store the total data count on mounted for outbound
 
 // Retrieve categories and products from localStorage if available
 try {
@@ -88,6 +91,16 @@ const getProducts = async () => {
   totalDataOnMounted.value = products.value.length // Store the total data count on mounted
 }
 
+const getOutbounds = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/outbound-products?populate=*`)
+  outboundsData.value = response.data.data
+  // Sort product by date created desc
+  outboundsData.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  localStorage.setItem('outbounds', JSON.stringify(outboundsData.value))
+  totalDataOnMountedOutbound.value = outboundsData.value.length // Store the total data count on mounted
+}
+
 // Function to delete a product
 const deleteProduct = async () => {
   const notif = push.promise({
@@ -105,11 +118,41 @@ const deleteProduct = async () => {
       message: 'Product deleted successfully!',
       duration: 3000,
     })
+
+    deleteId.value = null
+    imageDelete.value = null
   } catch (error) {
     console.error('Error deleting product:', error)
     notif.reject({
       type: 'error',
       message: 'Failed to delete product. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+const deleteOutbound = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Deleting outbound...',
+    duration: 0,
+  })
+  try {
+    await axios.delete(`${STRAPI_URL}/api/outbound-products/${deleteId.value}`)
+    getOutbounds()
+    show.value = false // Close the modal
+    notif.resolve({
+      type: 'success',
+      message: 'Outbound Product deleted successfully!',
+      duration: 3000,
+    })
+
+    deleteId.value = null
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to delete outbound. Please try again.',
       duration: 3000,
     })
   }
@@ -239,6 +282,73 @@ const postProduct = async () => {
   }
 }
 
+const posOutbounds = async () => {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Adding outbound item...',
+    duration: 0,
+  })
+  try {
+    const product_id = products.value.find(
+      (prod) => prod.product_name === selectedProductOutbound.value.product_name,
+    )?.documentId
+
+    console.log('Selected Product ID:', product_id)
+    console.log('selected product outbound value:', selectedProductOutbound.value)
+
+    const data = {
+      product: product_id,
+      qty: quantityOutbound.value,
+      destination: destinationOutbound.value,
+      notes: notesOutbound.value,
+    }
+
+    console.log('Data: ', data)
+
+    if (!data.product || !data.qty || !data.destination) {
+      modalType.value = 'warning'
+      message.value = 'Please fill in all required fields'
+      show.value = true
+      return
+    }
+
+    await axios.post(`${STRAPI_URL}/api/outbound-products`, {
+      data,
+    })
+
+    await axios.put(`${STRAPI_URL}/api/products/${product_id}`, {
+      data: {
+        product_qty:
+          products.value.find((prod) => prod.documentId === product_id)?.product_qty -
+          quantityOutbound.value,
+      },
+    })
+
+    // Reset form fields
+    selectedProductOutbound.value = ''
+    quantityOutbound.value = 1
+    destinationOutbound.value = ''
+    notesOutbound.value = ''
+
+    // Get outbounds
+    getOutbounds()
+
+    notif.resolve({
+      type: 'success',
+      message: 'Outbound item added successfully!',
+      duration: 3000,
+    })
+  } catch (error) {
+    // Handle errors
+    console.error('Error posting outbound item:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to add outbound item. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
 // Watch for changes in products to update total data count
 onMounted(() => {
   try {
@@ -248,6 +358,8 @@ onMounted(() => {
     console.log(categories.value)
 
     getProducts() // Fetch products when the component is mounted
+    getOutbounds()
+
     watchEffect(() => {
       if (!selectedCategory.value || products.value.length === 0) {
         codeProduct.value = ''
@@ -280,6 +392,14 @@ function clearImageHandle() {
     imageInput.value.value = ''
   }
 }
+
+function handleDelete() {
+  if (tab.value == 'inbounds') {
+    deleteProduct()
+  } else {
+    deleteOutbound()
+  }
+}
 </script>
 
 <template>
@@ -287,17 +407,25 @@ function clearImageHandle() {
     <div class="mt-4">
       <!-- Tabs of Inbounds and Outbounds Items -->
       <div class="mb-4">
-        <div class="flex border-b border-gray-200">
+        <div class="flex bg-white w-fit rounded-full shadow p-2">
           <button
             class="px-4 py-2 font-semibold focus:outline-none"
-            :class="tab === 'inbounds' ? 'border-b-2 border-sub text-sub' : 'text-gray-500'"
+            :class="
+              tab === 'inbounds'
+                ? 'bg-sub text-white border-b-2 border-sub rounded-full'
+                : 'text-gray-500'
+            "
             @click="tab = 'inbounds'"
           >
             Inbounds
           </button>
           <button
             class="px-4 py-2 font-semibold focus:outline-none"
-            :class="tab === 'outbounds' ? 'border-b-2 border-sub text-sub' : 'text-gray-500'"
+            :class="
+              tab === 'outbounds'
+                ? 'bg-sub text-white border-b-2 border-sub rounded-full'
+                : 'text-gray-500'
+            "
             @click="tab = 'outbounds'"
           >
             Outbounds
@@ -461,6 +589,7 @@ function clearImageHandle() {
           <h1 class="text-xl font-bold self-start md:self-center">Add Outbound Items</h1>
           <button
             type="button"
+            @click="posOutbounds"
             class="self-end-safe bg-sub text-white px-4 py-2 min-w-[100px] h-[40px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
           >
             Add Outbound
@@ -528,18 +657,29 @@ function clearImageHandle() {
       </div>
 
       <products_component
+        v-if="tab === 'inbounds'"
         @deleteProduct="deleteProduct"
         @openDeleteModal="openDeleteModal"
         @closeDeleteModal="closeDeleteModal"
         :products="products"
         :totalDataOnMounted="totalDataOnMounted"
       />
+
+      <ProductOutboundComponent
+        v-if="tab === 'outbounds'"
+        @deleteProduct="deleteOutbound"
+        @openDeleteModal="openDeleteModal"
+        @closeDeleteModal="closeDeleteModal"
+        :products="outboundsData"
+        :totalDataOnMounted="totalDataOnMountedOutbound"
+      />
+
       <alert-component
         :message="message"
         :show="show"
         @close="show = false"
         :type="modalType"
-        @confirm="deleteProduct"
+        @confirm="handleDelete"
       />
       <Notivue v-slot="item">
         <Notification :item="item" :theme="pastelTheme">
