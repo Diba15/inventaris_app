@@ -2,6 +2,10 @@
 import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 import SupplierCard from '@/components/supplier/SupplierCard.vue'
 
+defineOptions({
+  name: 'supplier_component',
+})
+
 const dummySupplierList = ref([
   {
     id: 1,
@@ -250,31 +254,32 @@ function highlightSearchTerm(text, searchTerm) {
       </div>
 
       <div class="py-4 px-8 flex flex-col gap-4">
-        <!-- Enhanced Search Bar -->
-        <div class="flex items-center px-0 relative justify-center">
+        <div class="relative w-full max-w-[600px] mx-auto">
+          <!-- Search Icon -->
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fa fa-search text-gray-500"></i>
+          </div>
+
+          <!-- Input Field -->
           <input
             type="text"
             id="searchSupplier"
             placeholder="Search suppliers by name, courier, cost, or description..."
-            class="mb-2 p-2.5 rounded-s-xl w-full max-w-[600px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none placeholder:text-center"
-            @input="handleSearch"
+            class="block w-full rounded-md border border-gray-300 py-2.5 pl-10 pr-10 text-base placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sub focus:border-sub"
             :value="searchTerm"
+            @input="handleSearch"
           />
 
-          <!-- Clear search button -->
-          <button
-            v-if="isSearching"
-            @click="clearSearch"
-            class="mb-2 bg-white p-2.5 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
-            title="Clear search"
-          >
-            <i class="fa fa-times"></i>
-          </button>
-
-          <!-- Search icon -->
-          <i
-            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-e-xl text-gray-400 border-r border-t border-b border-[#d1d5db]"
-          ></i>
+          <!-- Clear Search Button -->
+          <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+            <button
+              @click="clearSearch"
+              class="text-gray-500 hover:text-red-500 focus:outline-none"
+              title="Clear search"
+            >
+              <i class="fa fa-times-circle"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Search Results Info for Cards -->
@@ -313,7 +318,7 @@ function highlightSearchTerm(text, searchTerm) {
             <p class="text-sm">Try different search terms</p>
             <button
               @click="clearSearch"
-              class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              class="mt-2 px-4 py-2 bg-sub text-white rounded hover:bg-yellow-600 transition-colors"
             >
               Clear Search
             </button>
@@ -404,12 +409,12 @@ function highlightSearchTerm(text, searchTerm) {
               <td class="px-6 py-4 whitespace-nowrap">
                 <span v-html="highlightSearchTerm(supplier.courier_name, searchTerm)"></span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap text-green-600 font-semibold">
                 Rp.<span
                   v-html="highlightSearchTerm(supplier.total_cost?.toString() || '', searchTerm)"
                 ></span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-6 py-4 whitespace-nowrap text-gray-500">
                 {{
                   new Date(supplier.created_at).toLocaleDateString('id-ID', {
                     year: 'numeric',
@@ -442,7 +447,7 @@ function highlightSearchTerm(text, searchTerm) {
                   <p class="text-sm">Try adjusting your search terms</p>
                   <button
                     @click="clearSearch"
-                    class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    class="mt-2 px-4 py-2 bg-sub text-white rounded hover:bg-yellow-600 transition-colors"
                   >
                     Clear Search
                   </button>

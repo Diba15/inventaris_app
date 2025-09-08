@@ -18,20 +18,23 @@ const show = ref(false)
 const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
-const loadingShow = ref(false)
 const imageDelete = ref(null)
 const tab = ref('inbounds') // 'inbounds' or 'outbounds'
 
-// Reactive Variable for input
+// --- Image Upload State (Refactored) ---
+const imageInput = ref(null) // Ref for the file input element
+const imageUrl = ref(null) // Ref for the image preview URL
+const selectedFile = ref(null) // Ref to store the selected file object
+
+// --- Input State for Inbounds ---
 const selectedCategory = ref('')
 const codeProduct = ref('')
 const nameProduct = ref('')
 const descriptionProduct = ref('')
 const priceProduct = ref('')
 const quantityProduct = ref(1)
-const imageInput = ref(null)
 
-// Reactive Variable for outbound input
+// --- Input State for Outbounds ---
 const selectedProductOutbound = ref('')
 const quantityOutbound = ref(1)
 const destinationOutbound = ref('')
@@ -182,38 +185,30 @@ const postProduct = async () => {
       return
     }
 
-    // Upload image if available
-    const imageFile = imageInput.value ? imageInput.value.files[0] : null
-
     const productRes = await axios.post(`${STRAPI_URL}/api/products`, {
       data,
     })
 
-    // Upload image
-    if (imageFile) {
+    // Upload image if available
+    if (selectedFile.value) {
       const fd = new FormData()
-      fd.append('files', imageFile)
+      fd.append('files', selectedFile.value)
 
       const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
         method: 'POST',
         body: fd,
       })
 
-      // Check if upload was successful
       if (uploadRes.ok) {
         const uploadResult = await uploadRes.json()
         const imageId = uploadResult[0].id
 
         // Update product with image ID
-        await axios
-          .put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
-            data: {
-              product_image: imageId, // Assuming product_image is the field for the image
-            },
-          })
-          .then(() => {
-            loadingShow.value = false // Hide loading indicator
-          })
+        await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
+          data: {
+            product_image: imageId,
+          },
+        })
       }
     }
 
@@ -224,13 +219,7 @@ const postProduct = async () => {
     descriptionProduct.value = ''
     priceProduct.value = ''
     quantityProduct.value = 1
-    if (imageInput.value && imageInput.value.value !== undefined) {
-      imageInput.value.value = null // Reset the file input
-    }
-    imgPreview.value = false // Hide the image preview
-    buttonClear.value = false // Hide the clear button
-    const img = document.querySelector('#image-preview')
-    if (img) img.src = ''
+    clearImageHandle() // Reset image uploader
 
     getProducts() // Refresh the product list after adding a new product
 
@@ -271,42 +260,24 @@ onMounted(() => {
   }
 })
 
-// Reactive variable for image input
-const imgPreview = ref(false)
-const buttonClear = ref(false)
-
+// --- Image Upload Functions (Refactored) ---
 function imageUploadHandleClick() {
-  const input = document.querySelector('#image_upload input')
-  if (input) {
-    input.click()
-  }
+  imageInput.value.click()
 }
 
 function handleImageUpload(event) {
   const file = event.target.files[0]
   if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = document.querySelector('#image-preview')
-      if (img) {
-        img.src = e.target.result
-        imgPreview.value = true // Show the image preview
-        buttonClear.value = true
-      }
-    }
-    reader.readAsDataURL(file)
+    selectedFile.value = file
+    imageUrl.value = URL.createObjectURL(file)
   }
 }
 
 function clearImageHandle() {
-  const img = document.querySelector('#image-preview')
-  if (img) {
-    img.src = ''
-    imgPreview.value = false // Hide the image preview
-    buttonClear.value = false // Hide the clear button
-  }
+  imageUrl.value = null
+  selectedFile.value = null
   if (imageInput.value) {
-    imageInput.value.value = null // Reset the file input
+    imageInput.value.value = ''
   }
 }
 </script>
@@ -358,42 +329,55 @@ function clearImageHandle() {
             @submit.prevent
           >
             <div class="flex flex-col md:flex-row gap-4 items-center w-full">
-              <div id="image_upload" class="flex items-center justify-center rounded">
+              <div id="image_upload" class="w-full md:w-60 flex-shrink-0">
+                <!-- Placeholder when no image is selected -->
+                <div
+                  v-if="!imageUrl"
+                  @click="imageUploadHandleClick"
+                  class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+                >
+                  <div class="space-y-1 text-center">
+                    <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+                    <p class="text-sm text-gray-600">Click to upload image</p>
+                  </div>
+                </div>
+
+                <!-- Image Preview when an image is selected -->
+                <div v-else class="relative w-full h-40">
+                  <img
+                    :src="imageUrl"
+                    alt="Image Preview"
+                    class="w-full h-full object-cover rounded-md shadow-md"
+                  />
+                  <button
+                    @click="clearImageHandle"
+                    type="button"
+                    class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
+                    title="Remove image"
+                  >
+                    <svg
+                      class="h-5 w-5"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
                 <input
                   type="file"
                   class="hidden"
-                  id="image"
-                  name="image"
                   accept="image/*"
                   @change="handleImageUpload($event)"
                   ref="imageInput"
                 />
-                <div
-                  v-show="!imgPreview"
-                  id="image-icon-container"
-                  class="flex items-center justify-center w-60 h-40 rounded cursor-pointer bg-gray-200 hover:bg-gray-300 transition-all duration-300"
-                  @click="imageUploadHandleClick"
-                >
-                  <i id="image-icon" class="fa-solid fa-image text-3xl text-gray-500"></i>
-                </div>
-                <div id="image-preview-container" class="flex flex-col items-center mt-2">
-                  <img
-                    id="image-preview"
-                    @click="imageUploadHandleClick"
-                    src=""
-                    class="w-60 h-40 object-cover rounded-lg shadow-md cursor-pointer"
-                    alt=""
-                    v-show="imgPreview"
-                  />
-                  <button
-                    type="button"
-                    class="text-xs text-gray-500 cursor-pointer"
-                    @click="clearImageHandle"
-                    v-show="buttonClear"
-                  >
-                    Clear Image
-                  </button>
-                </div>
               </div>
               <div class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col md:flex-row gap-4">

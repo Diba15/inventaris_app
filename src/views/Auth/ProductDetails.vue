@@ -6,45 +6,57 @@ defineOptions({
   name: 'product_details',
 })
 
-// ingin mengambil id dari route params
+// Mengambil id dari route params
 import { useRoute } from 'vue-router'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 
 const route = useRoute()
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const product = ref(null)
-const imgUrl = ref('')
-const imgPreview = ref(false)
-const imgInput = ref(null)
-// const isLoading = ref(false)
+const imageInput = ref(null) // Ref for the file input element
+const previewUrl = ref(null) // Ref for the new image preview URL
+const selectedFile = ref(null) // Ref to store the new selected file object
+
+// Computed property to get the current image URL (either original or preview)
+const currentImageUrl = computed(() => {
+  if (previewUrl.value) {
+    return previewUrl.value
+  }
+  if (product.value?.product_image?.url) {
+    return product.value.product_image.url
+  }
+  return null
+})
 
 const getProductDetails = async () => {
   const id = route.params.id
-  const response = await axios.get(`${STRAPI_URL}/api/products/${id}?populate=*`)
-  product.value = response.data.data
-  imgUrl.value = response.data.data.product_image.url
+  try {
+    const response = await axios.get(`${STRAPI_URL}/api/products/${id}?populate=*`)
+    product.value = response.data.data
+  } catch (error) {
+    console.error('Failed to fetch product details:', error)
+    push.error('Failed to load product details.')
+  }
 }
 
 onMounted(() => {
   getProductDetails()
-  if (imgUrl.value) {
-    imgPreview.value = true
-  } else {
-    imgPreview.value = false
-  }
 })
 
 async function handleDeleteImage(id) {
-  await axios.delete(`${STRAPI_URL}/api/upload/files/${id}`)
+  try {
+    await axios.delete(`${STRAPI_URL}/api/upload/files/${id}`)
+  } catch (error) {
+    console.error('Failed to delete old image:', error)
+  }
 }
 
 const updateProduct = async () => {
   const id = route.params.id
-
   const price = product.value.product_price.toString()
 
   const updatedData = {
@@ -75,45 +87,38 @@ const updateProduct = async () => {
   }
 
   try {
+    // 1. Update text fields first
     await axios.put(`${STRAPI_URL}/api/products/${id}`, {
       data: {
         ...updatedData,
       },
     })
 
-    const deleteId = product.value.product_image?.id
-
-    const imgFile = imgInput.value ? imgInput.value.files[0] : null
-
-    console.log(imgFile)
-
-    if (imgFile) {
+    // 2. Handle image update if a new file is selected
+    if (selectedFile.value) {
+      const oldImageId = product.value.product_image?.id
       const formData = new FormData()
-      formData.append('files', imgFile)
+      formData.append('files', selectedFile.value)
 
+      // Upload the new image
       const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
-      const uploadedFile = imageResponse.data[0]
+      const newImageId = imageResponse.data[0]?.id
 
-      // Coba berbagai cara mengambil ID
-      const imageId = uploadedFile.id || uploadedFile.documentId || uploadedFile.attributes?.id
-
-      if (uploadedFile) {
-        // 2. Update product dengan image ID
-        const updateResponse = await axios.put(`${STRAPI_URL}/api/products/${id}`, {
-          data: {
-            product_image: imageId,
-          },
+      if (newImageId) {
+        // Link the new image to the product
+        await axios.put(`${STRAPI_URL}/api/products/${id}`, {
+          data: { product_image: newImageId },
         })
 
-        console.log('Product updated with new image:', updateResponse.data)
-      }
-
-      if (deleteId) {
-        handleDeleteImage(deleteId) // Delete the old image if it exists
+        // Delete the old image after the new one is successfully linked
+        if (oldImageId) {
+          await handleDeleteImage(oldImageId)
+        }
       }
     }
 
-    getProductDetails() // Refresh the product details after update
+    await getProductDetails() // Refresh the product details after update
+    clearImageChange() // Clear the preview
 
     notif.resolve({
       type: 'success',
@@ -130,30 +135,32 @@ const updateProduct = async () => {
   }
 }
 
-function handleChangeImage() {
-  const imageInput = document.querySelector('#image-upload')
-  if (imageInput) {
-    imageInput.click()
-  }
+// --- Image Upload Functions ---
+function handleChangeImageClick() {
+  imageInput.value.click()
 }
 
 function handleFileChange(event) {
   const file = event.target.files[0]
   if (file) {
-    const reader = new FileReader()
-    const img = document.querySelector('#product-image')
-    reader.onload = (e) => {
-      img.src = e.target.result
-      imgPreview.value = false // Hide the default image
-    }
-    reader.readAsDataURL(file)
+    selectedFile.value = file
+    previewUrl.value = URL.createObjectURL(file)
+  }
+}
+
+// Clears the newly selected image preview, reverting to the original image
+function clearImageChange() {
+  previewUrl.value = null
+  selectedFile.value = null
+  if (imageInput.value) {
+    imageInput.value.value = ''
   }
 }
 
 function handlePriceInput(event) {
   const input = event.target.value
   const numericValue = input.replace(/[^0-9]/g, '')
-  // Format with dot as thousand separator, no "Rp"
+  // Format with dot as thousand separator
   product.value.product_price = numericValue
     ? numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
     : ''
@@ -163,51 +170,67 @@ function handlePriceInput(event) {
 <template>
   <main class="text-base px-4">
     <div v-if="product" class="mt-4">
-      <form action="" @submit="updateProduct">
+      <form action="" @submit.prevent="updateProduct">
         <div class="flex flex-col gap-4 bg-white rounded-xl shadow-lg">
           <div
             class="p-4 bg-base text-white rounded-t-xl flex flex-col md:flex-row justify-between items-center"
           >
             <h1 class="text-xl font-bold self-start md:self-center">Product Details</h1>
             <button
-              type="button"
+              type="submit"
               class="self-end-safe bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
-              @click="updateProduct"
             >
               Save
             </button>
           </div>
           <div class="flex flex-col md:flex-row p-4 gap-8">
-            <!-- Image -->
-            <div class="flex flex-col items-center gap-4 mb-6">
-              <!-- Gambar Produk -->
-              <img
-                id="product-image"
-                :src="imgUrl"
-                v-if="imgUrl"
-                alt="Product Image"
-                class="w-60 h-40 object-cover rounded-lg shadow-md"
-              />
-              <div
-                v-else
-                class="w-60 h-40 object-cover rounded-lg shadow-md flex items-center justify-center bg-gray-200"
-              >
-                <i class="fa-solid fa-image text-4xl text-gray-500"></i>
+            <!-- Image Uploader Section (Updated) -->
+            <div class="flex flex-col items-center gap-4 flex-shrink-0">
+              <div class="w-60 h-40">
+                <!-- Image Display Area -->
+                <div
+                  v-if="currentImageUrl"
+                  class="relative w-full h-full"
+                  @click="handleChangeImageClick"
+                >
+                  <img
+                    :src="currentImageUrl"
+                    alt="Product Image"
+                    class="w-full h-full object-cover rounded-lg shadow-md cursor-pointer"
+                  />
+                  <button
+                    v-if="previewUrl"
+                    @click.stop="clearImageChange"
+                    type="button"
+                    class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full py-1 px-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
+                    title="Cancel image change"
+                  >
+                    <i class="fa-solid fa-xmark w-5 h-5"></i>
+                  </button>
+                </div>
+
+                <!-- Placeholder when no image exists -->
+                <div
+                  v-else
+                  @click="handleChangeImageClick"
+                  class="w-full h-full object-cover rounded-lg shadow-md flex items-center justify-center bg-gray-200 cursor-pointer hover:bg-gray-300"
+                >
+                  <i class="fa-solid fa-image text-4xl text-gray-500"></i>
+                </div>
               </div>
 
-              <!-- Input File -->
+              <!-- Input File (Hidden) -->
               <input
                 type="file"
                 @change="handleFileChange"
                 class="hidden"
-                id="image-upload"
                 accept="image/*"
-                ref="imgInput"
+                ref="imageInput"
               />
 
               <!-- Tombol Ganti Gambar -->
               <button
-                @click="handleChangeImage"
+                @click="handleChangeImageClick"
                 type="button"
                 class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 px-5 rounded-lg shadow-sm transition duration-200"
               >
@@ -248,7 +271,7 @@ function handlePriceInput(event) {
                     label="Price"
                     v-model="product.product_price"
                     class="max-w-md w-full"
-                    @handlePriceInput="handlePriceInput"
+                    @input="handlePriceInput"
                   />
                   <StandardFloatingInput
                     id="product_qty"

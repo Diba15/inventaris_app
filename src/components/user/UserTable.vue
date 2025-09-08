@@ -155,35 +155,43 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
 <template>
   <div>
     <!-- Search Bar -->
-    <div class="flex items-center px-4 relative">
-      <input
-        type="text"
-        id="searchUser"
-        name="searchUser"
-        placeholder="Search by username, email, role..."
-        class="mb-2 px-2 py-1 rounded-l w-full max-w-[400px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none"
-        @input="handleSearch"
-        :value="searchTerm"
-        autocomplete="off"
-      />
-      <button
-        v-if="isSearching"
-        @click="clearSearch"
-        class="mb-2 bg-white px-2 py-1 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
-        title="Clear search"
-      >
-        <i class="fa fa-times"></i>
-      </button>
-      <i
-        class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-[#d1d5db]"
-      ></i>
+    <div class="px-4 mb-4">
+      <div class="relative w-full max-w-lg bg-white rounded-md shadow-sm">
+        <!-- Search Icon -->
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <i class="fa fa-search text-gray-400"></i>
+        </div>
+
+        <!-- Input Field -->
+        <input
+          type="text"
+          id="searchProduct"
+          placeholder="Search by name, code, description, price, or quantity..."
+          class="block w-full max-w-lg rounded-md border border-gray-300 py-2 pl-10 pr-10 text-base placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sub focus:border-sub"
+          :value="searchTerm"
+          @input="handleSearch"
+        />
+
+        <!-- Clear Search Button -->
+        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <button
+            @click="clearSearch"
+            class="text-gray-500 hover:text-red-500 transition-colors focus:outline-none"
+            title="Clear search"
+          >
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+      </div>
     </div>
+
     <div v-if="isSearching" class="px-4 mb-2 text-sm text-gray-600">
       <span v-if="hasResults">
         Found {{ filteredUsers.length }} result(s) for "{{ searchTerm }}"
       </span>
       <span v-else class="text-orange-600"> No results found for "{{ searchTerm }}" </span>
     </div>
+
     <div class="user-grid overflow-x-auto shadow-lg rounded-xl">
       <table
         class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
@@ -318,6 +326,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
         </tbody>
       </table>
     </div>
+
     <!-- Pagination -->
     <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
       <div>
