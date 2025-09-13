@@ -52,7 +52,7 @@ function getWarehouseAttribute(warehouse, attribute) {
 }
 
 function deleteWarehouse(warehouse) {
-  const id = warehouse.id
+  const id = warehouse.documentId
   const code = getWarehouseAttribute(warehouse, 'code')
   emit('deleteWarehouse', id, code)
 }

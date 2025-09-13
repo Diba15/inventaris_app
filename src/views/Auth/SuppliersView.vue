@@ -69,6 +69,16 @@ const dummySupplierList = ref([
     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     created_at: '2022-01-06 00:00:00',
   },
+  {
+    id: 7,
+    name: 'Procter & Gamble',
+    arrive_at: '2022-01-07',
+    courier_name: 'JNE',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Procter_%26_Gamble_logo.svg/1024px-Procter_%26_Gamble_logo.svg.png',
+    total_cost: 70000,
+    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    created_at: '2022-01-07 00:00:00',
+  },
 ])
 
 // --- LOGIKA MODAL TAMBAH SUPPLIER ---
@@ -295,7 +305,7 @@ const clearSearch = () => {
 
           <!-- No results state for cards -->
           <div
-            v-if="!filteredSuppliersForCards.length && isSearching"
+            v-if="!filteredSuppliersForCards.length"
             class="flex flex-col items-center justify-center text-gray-400 min-w-[300px] p-8 border-2 border-dashed border-gray-300 rounded-lg"
           >
             <i class="fa fa-search text-4xl mb-2"></i>
