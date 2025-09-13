@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 import SupplierCard from '@/components/supplier/SupplierCard.vue'
+import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
+import CustomModal from '@/components/CustomModal.vue'
 
 defineOptions({
   name: 'supplier_component',
@@ -69,6 +71,50 @@ const dummySupplierList = ref([
   },
 ])
 
+// --- LOGIKA MODAL TAMBAH SUPPLIER ---
+const isAddModalOpen = ref(false)
+const newSupplier = ref({
+  name: '',
+  arrive_at: '',
+  courier_name: '',
+  total_cost: null,
+  img: '',
+  other: '',
+})
+
+function openAddModal() {
+  isAddModalOpen.value = true
+}
+
+function closeAddModal() {
+  isAddModalOpen.value = false
+  // Reset form fields
+  newSupplier.value = {
+    name: '',
+    arrive_at: '',
+    courier_name: '',
+    total_cost: null,
+    img: '',
+    other: '',
+  }
+}
+
+function handleAddSupplier() {
+  if (!newSupplier.value.name || !newSupplier.value.arrive_at) {
+    alert('Supplier Name and Arrive At date are required.')
+    return
+  }
+  const supplierToAdd = {
+    id: Date.now(), // Gunakan ID unik sementara
+    ...newSupplier.value,
+    total_cost: Number(newSupplier.value.total_cost) || 0,
+    created_at: new Date().toISOString(),
+  }
+  dummySupplierList.value.unshift(supplierToAdd) // Tambahkan ke awal list
+  closeAddModal()
+}
+// --- AKHIR LOGIKA MODAL ---
+
 // Props for emits (similar to products component)
 const emit = defineEmits(['deleteSupplier', 'openDeleteModal'])
 
@@ -79,6 +125,41 @@ const currentPage = ref(1)
 const searchTerm = ref('') // Add reactive search term
 const sortOrder = ref('asc')
 const sortKey = ref('name')
+
+// --- LOGIKA BARU UNUK DRAG CAROUSEL ---
+const carousel = ref(null) // Template ref untuk elemen carousel
+const isDown = ref(false)
+const startX = ref(0)
+const scrollLeft = ref(0)
+
+function handleMouseDown(e) {
+  if (!carousel.value) return
+  isDown.value = true
+  carousel.value.classList.add('active')
+  startX.value = e.pageX - carousel.value.offsetLeft
+  scrollLeft.value = carousel.value.scrollLeft
+}
+
+function handleMouseLeave() {
+  if (!carousel.value) return
+  isDown.value = false
+  carousel.value.classList.remove('active')
+}
+
+function handleMouseUp() {
+  if (!carousel.value) return
+  isDown.value = false
+  carousel.value.classList.remove('active')
+}
+
+function handleMouseMove(e) {
+  if (!isDown.value || !carousel.value) return
+  e.preventDefault()
+  const x = e.pageX - carousel.value.offsetLeft
+  const walk = (x - startX.value) * 2 // Angka 2 untuk mempercepat scroll
+  carousel.value.scrollLeft = scrollLeft.value - walk
+}
+// --- AKHIR LOGIKA BARU ---
 
 // Pagination calculations
 const startPageCount = computed(() => startPage.value * 5 + 1)
@@ -251,6 +332,12 @@ function highlightSearchTerm(text, searchTerm) {
         class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
         <h1 class="text-xl font-bold self-start md:self-center">Suppliers</h1>
+        <button
+          @click="openAddModal"
+          class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-sub/90 transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+        >
+          Add Supplier
+        </button>
       </div>
 
       <div class="py-4 px-8 flex flex-col gap-4">
@@ -290,10 +377,15 @@ function highlightSearchTerm(text, searchTerm) {
           <span v-else class="text-orange-600"> No suppliers found for "{{ searchTerm }}" </span>
         </div>
 
-        <!-- Enhanced Supplier Carousel -->
+        <!-- Enhanced Supplier Carousel with Drag Events -->
         <div
           id="supplier-carousel"
+          ref="carousel"
           class="flex flex-nowrap gap-10 items-center overflow-x-scroll max-w-screen"
+          @mousedown="handleMouseDown"
+          @mouseleave="handleMouseLeave"
+          @mouseup="handleMouseUp"
+          @mousemove="handleMouseMove"
         >
           <!-- Show filtered suppliers in cards -->
           <supplier-card
@@ -322,14 +414,6 @@ function highlightSearchTerm(text, searchTerm) {
             >
               Clear Search
             </button>
-          </div>
-
-          <!-- Add Supplier Button - always visible -->
-          <div
-            class="flex flex-col items-center text-base text-2xl font-extrabold cursor-pointer min-w-fit"
-          >
-            <h1>Tambah Supplier</h1>
-            <i class="fa-solid fa-plus text-4xl"></i>
           </div>
         </div>
       </div>
@@ -501,12 +585,87 @@ function highlightSearchTerm(text, searchTerm) {
         </div>
       </div>
     </div>
+
+    <!-- Add Supplier Modal -->
+    <custom-modal :is-add-modal-open="isAddModalOpen" @close-add-modal="closeAddModal" modal-title="Add New Supplier">
+      <form @submit.prevent="handleAddSupplier" class="space-y-4">
+        <StandardFloatingInput
+          label="Supplier Name"
+          type="text"
+          id="name"
+          name="name"
+          required
+          v-model="newSupplier.name"
+        />
+        <StandardFloatingInput
+          label="Arrive At"
+          type="date"
+          id="arrive_at"
+          name="arrive_at"
+          required
+          v-model="newSupplier.arrive_at"
+        />
+        <StandardFloatingInput
+          label="Courier Name"
+          type="text"
+          id="courier_name"
+          name="courier_name"
+          v-model="newSupplier.courier_name"
+        />
+        <StandardFloatingInput
+          label="Total Cost"
+          type="number"
+          id="total_cost"
+          name="total_cost"
+          v-model="newSupplier.total_cost"
+        />
+        <StandardFloatingInput
+          label="Image URL"
+          type="text"
+          id="img"
+          name="img"
+          v-model="newSupplier.img"
+        />
+        <StandardFloatingInput
+          label="Description"
+          type="textarea"
+          id="other"
+          name="other"
+          v-model="newSupplier.other"
+        />
+        <div class="flex justify-end gap-4 pt-4">
+          <button
+            type="button"
+            @click="closeAddModal"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-sub text-white rounded-lg hover:bg-sub/90 transition-colors"
+          >
+            Save Supplier
+          </button>
+        </div>
+      </form>
+    </custom-modal>
   </div>
 </template>
 
 <style scoped>
 #supplier-carousel::-webkit-scrollbar {
   display: none;
+}
+
+/* Style tambahan untuk feedback visual saat drag */
+#supplier-carousel {
+  cursor: grab;
+  user-select: none; /* Mencegah seleksi teks saat drag */
+}
+
+#supplier-carousel.active {
+  cursor: grabbing;
 }
 
 .hover-table tbody tr:hover {

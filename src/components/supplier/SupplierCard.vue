@@ -18,12 +18,12 @@ defineProps({
 <template>
   <div class="flex flex-col items-center">
     <h1 class="text-base font-bold">{{ name }}</h1>
-    <div class="min-w-[200px] min-h-[200px] p-4 rounded-xl flex items-center justify-center">
+    <div class="min-w-[150px] min-h-[150px] py-4 px-8 rounded-xl flex items-center justify-center">
       <img
         v-if="img"
         :src="img"
         alt="Supplier Image"
-        class="max-w-[150px] max-h-[150px] object-cover rounded-lg"
+        class="max-w-[120px] max-h-[120px] object-cover rounded-lg"
       />
 
       <div v-else class="w-full h-full flex flex-col gap-4 items-center justify-center">
@@ -31,6 +31,6 @@ defineProps({
         <p class="text-center text-gray-500">No Image Available</p>
       </div>
     </div>
-    <button class="text-base font-bold">Detail</button>
+    <button class="text-white font-bold bg-sub hover:bg-yellow-600 py-1.5 px-10 rounded-lg">Detail</button>
   </div>
 </template>

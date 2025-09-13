@@ -4,6 +4,7 @@ import L from 'leaflet'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import TableWarehouse from '@/components/warehouse/TableWarehouse.vue'
 import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
+import CustomModal from '@/components/CustomModal.vue'
 import axios from 'axios'
 
 const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
@@ -12,6 +13,7 @@ const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 const warehouseList = ref([])
 const isLoading = ref(false)
 const error = ref(null)
+const isAddModalOpen = ref(false)
 
 // Warehouse Input Ref
 const warehouseAddress = ref('')
@@ -20,6 +22,21 @@ const warehouseLat = ref('')
 const warehouseLng = ref('')
 const warehouseCode = ref('')
 const warehouseStatus = ref('Active')
+
+function openAddModal() {
+  isAddModalOpen.value = true
+}
+
+function closeAddModal() {
+  isAddModalOpen.value = false
+  // Reset form fields
+  warehouseAddress.value = ''
+  warehouseName.value = ''
+  warehouseLat.value = ''
+  warehouseLng.value = ''
+  warehouseCode.value = codeGenerator()
+  warehouseStatus.value = 'Active'
+}
 
 const statusOptions = [
   { value: 'Active', label: 'Active' },
@@ -309,104 +326,117 @@ onMounted(async () => {
           <i class="fa-solid fa-spinner fa-spin mr-2"></i>
           Loading...
         </div>
+        <button
+          v-else
+          @click="openAddModal"
+          class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-sub/90 transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+        >
+          Add Warehouse
+        </button>
       </div>
       <div id="map" class="w-full h-full min-h-[400px]"></div>
     </div>
 
-    <div class="flex flex-col md:flex-row-reverse mt-10 pb-10 gap-4">
+    <div class="mt-10 pb-10 gap-4">
       <!-- Table Warehouse -->
       <TableWarehouse
         :warehouseList="warehouseList"
         @deleteWarehouse="deleteWarehouse"
         @showLocationOnMap="showLocationOnMap"
       />
-
-      <!-- Add Warehouse -->
-      <div class="bg-white rounded-xl shadow w-full h-fit">
-        <div
-          class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
-        >
-          <h1 class="text-xl font-bold self-start md:self-center">Add Warehouse</h1>
-        </div>
-        <div class="px-6 py-2">
-          <form @submit.prevent="addWarehouse" class="flex flex-col gap-4 my-4">
-            <div class="flex flex-col gap-4 w-full">
-              <div class="flex flex-col md:flex-row gap-4">
-                <StandardFloatingInput
-                  id="name"
-                  type="text"
-                  name="name"
-                  placeholder="Warehouse Name"
-                  label="Warehouse Name"
-                  v-model="warehouseName"
-                  class="max-w-md w-full"
-                  required
-                />
-                <StandardFloatingInput
-                  id="code"
-                  type="text"
-                  name="code"
-                  placeholder="Warehouse Code"
-                  label="Warehouse Code"
-                  v-model="warehouseCode"
-                  class="max-w-md w-full"
-                  required
-                  disabled
-                />
-              </div>
-              <StandardFloatingInput
-                id="address"
-                type="text"
-                name="address"
-                placeholder="Warehouse Address"
-                label="Warehouse Address"
-                v-model="warehouseAddress"
-                class=" w-full"
-                required
-              />
-              <div class="flex flex-col md:flex-row gap-4">
-                <StandardFloatingInput
-                  id="warehouseLat"
-                  type="text"
-                  name="warehouseLat"
-                  placeholder="Latitude"
-                  label="Latitude"
-                  v-model="warehouseLat"
-                  class="max-w-md w-full"
-                  required
-                />
-                <StandardFloatingInput
-                  id="warehouseLng"
-                  type="text"
-                  name="warehouseLng"
-                  placeholder="Longitude"
-                  label="Longitude"
-                  v-model="warehouseLng"
-                  class="max-w-md w-full"
-                  required
-                />
-              </div>
-              <AutoCompleteInput
-                id="status"
-                label="Status"
-                v-model="warehouseStatus"
-                :options="statusOptions"
-                class="w-full"
-                required
-              />
-              <button
-                type="submit"
-                :disabled="isLoading || !warehouseAddress.trim()"
-                class="bg-sub text-white px-4 py-2 w-fit h-[40px] rounded-xl hover:bg-yellow-600 transition-colors cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {{ isLoading ? 'Adding...' : 'Add Warehouse' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
   </div>
+
+  <!-- Modal -->
+  <CustomModal
+    :is-add-modal-open="isAddModalOpen"
+    @close-add-modal="closeAddModal"
+    modalTitle="Add New Warehouse"
+  >
+    <form @submit.prevent="addWarehouse" class="flex flex-col gap-4 my-4">
+      <div class="flex flex-col gap-4 w-full">
+        <div class="flex flex-col md:flex-row gap-4">
+          <StandardFloatingInput
+            id="name"
+            type="text"
+            name="name"
+            placeholder="Warehouse Name"
+            label="Warehouse Name"
+            v-model="warehouseName"
+            class="max-w-md w-full"
+            required
+          />
+          <StandardFloatingInput
+            id="code"
+            type="text"
+            name="code"
+            placeholder="Warehouse Code"
+            label="Warehouse Code"
+            v-model="warehouseCode"
+            class="max-w-md w-full"
+            required
+            disabled
+          />
+        </div>
+        <StandardFloatingInput
+          id="address"
+          type="text"
+          name="address"
+          placeholder="Warehouse Address"
+          label="Warehouse Address"
+          v-model="warehouseAddress"
+          class="w-full"
+          required
+        />
+        <div class="flex flex-col md:flex-row gap-4">
+          <StandardFloatingInput
+            id="warehouseLat"
+            type="text"
+            name="warehouseLat"
+            placeholder="Latitude"
+            label="Latitude"
+            v-model="warehouseLat"
+            class="max-w-md w-full"
+            required
+          />
+          <StandardFloatingInput
+            id="warehouseLng"
+            type="text"
+            name="warehouseLng"
+            placeholder="Longitude"
+            label="Longitude"
+            v-model="warehouseLng"
+            class="max-w-md w-full"
+            required
+          />
+        </div>
+        <AutoCompleteInput
+          id="status"
+          label="Status"
+          v-model="warehouseStatus"
+          :options="statusOptions"
+          class="w-full"
+          required
+        />
+        <div class="flex justify-end gap-4">
+          <button
+            type="button"
+            @click="closeAddModal"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            :disabled="isLoading || !warehouseAddress.trim()"
+            class="bg-sub text-white px-4 py-2 w-fit h-[40px] rounded-xl hover:bg-yellow-600 transition-colors cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {{ isLoading ? 'Adding...' : 'Add Warehouse' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </CustomModal>
 </template>
 
 <style scoped>
