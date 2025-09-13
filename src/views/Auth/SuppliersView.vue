@@ -334,7 +334,7 @@ function highlightSearchTerm(text, searchTerm) {
         <h1 class="text-xl font-bold self-start md:self-center">Suppliers</h1>
         <button
           @click="openAddModal"
-          class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-sub/90 transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+          class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
         >
           Add Supplier
         </button>

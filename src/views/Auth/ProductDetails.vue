@@ -178,7 +178,7 @@ function handlePriceInput(event) {
             <h1 class="text-xl font-bold self-start md:self-center">Product Details</h1>
             <button
               type="submit"
-              class="self-end-safe bg-sub hover:bg-yellow-600 text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
+              class="bg-white/20 hover:bg-white/30 transition-colors self-end-safe text-white py-2 px-4 rounded w-[100px] h-[40px] cursor-pointer"
             >
               Save
             </button>

@@ -222,9 +222,11 @@ const postProduct = async () => {
       !data.product_price ||
       !data.product_qty
     ) {
-      modalType.value = 'warning'
-      message.value = 'Please fill in all fields'
-      show.value = true
+      notif.reject({
+        type: 'warning',
+        message: 'Please fill in all required fields',
+        duration: 3000,
+      })
       return
     }
 
@@ -442,7 +444,7 @@ function handleDelete() {
           <button
             @click="postProduct"
             type="button"
-            class="self-end-safe bg-sub text-white px-4 py-2 min-w-[100px] h-[40px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
+            class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
           >
             Add Product
           </button>
@@ -590,7 +592,7 @@ function handleDelete() {
           <button
             type="button"
             @click="posOutbounds"
-            class="self-end-safe bg-sub text-white px-4 py-2 min-w-[100px] h-[40px] rounded hover:bg-yellow-600 transition-colors cursor-pointer"
+            class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
           >
             Add Outbound
           </button>
