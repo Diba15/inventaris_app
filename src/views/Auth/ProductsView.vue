@@ -308,9 +308,11 @@ const posOutbounds = async () => {
     console.log('Data: ', data)
 
     if (!data.product || !data.qty || !data.destination) {
-      modalType.value = 'warning'
-      message.value = 'Please fill in all required fields'
-      show.value = true
+      notif.reject({
+        type: 'warning',
+        message: 'Please fill in all required fields',
+        duration: 3000,
+      })
       return
     }
 
@@ -407,254 +409,257 @@ function handleDelete() {
 <template>
   <div class="px-4">
     <div class="mt-4">
-      <!-- Tabs of Inbounds and Outbounds Items -->
-      <div class="mb-4">
-        <div class="flex bg-white w-fit rounded-full shadow p-2">
+      <!-- Add Product Form -->
+      <div class="bg-white rounded-xl mb-4 shadow">
+        <div
+          class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        >
+          <div>
+            <h1 class="text-2xl font-bold">
+              {{ tab === 'inbounds' ? 'Inbound Products' : 'Outbound Products' }}
+            </h1>
+            <p class="text-[var(--color-secondary)] opacity-80 mt-1">
+              {{ tab === 'inbounds' ? 'Manage your inbounds' : 'Manage your outbounds' }}
+            </p>
+          </div>
+          <div>
+            <button
+              v-if="tab === 'inbounds'"
+              @click="postProduct"
+              type="button"
+              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
+            >
+              Add Product
+            </button>
+            <button
+              v-if="tab === 'outbounds'"
+              type="button"
+              @click="posOutbounds"
+              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
+            >
+              Add Outbound
+            </button>
+          </div>
+        </div>
+
+        <div class="flex gap-2 flex-wrap p-4 border-b border-gray-200">
           <button
-            class="px-4 py-2 font-semibold focus:outline-none"
+            @click="tab = 'inbounds'"
             :class="
               tab === 'inbounds'
-                ? 'bg-sub text-white border-b-2 border-sub rounded-full'
-                : 'text-gray-500'
+                ? 'bg-[var(--color-sub)] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             "
-            @click="tab = 'inbounds'"
+            class="px-4 py-2 rounded-lg transition-colors font-medium"
           >
             Inbounds
           </button>
           <button
-            class="px-4 py-2 font-semibold focus:outline-none"
+            @click="tab = 'outbounds'"
             :class="
               tab === 'outbounds'
-                ? 'bg-sub text-white border-b-2 border-sub rounded-full'
-                : 'text-gray-500'
+                ? 'bg-[var(--color-sub)] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             "
-            @click="tab = 'outbounds'"
+            class="px-4 py-2 rounded-lg transition-colors font-medium"
           >
             Outbounds
           </button>
         </div>
-      </div>
 
-      <!-- Add Product Form -->
-      <div class="bg-white rounded-xl mb-4 shadow" v-if="tab === 'inbounds'">
-        <div
-          class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
-        >
-          <h1 class="text-xl font-bold self-start md:self-center">Add Products</h1>
-          <button
-            @click="postProduct"
-            type="button"
-            class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
-          >
-            Add Product
-          </button>
-        </div>
-        <div class="px-6 py-2">
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            action=""
-            id="add_product"
-            class="flex flex-col gap-4 my-4"
-            @submit.prevent
-          >
-            <div class="flex flex-col md:flex-row gap-4 items-center w-full">
-              <div id="image_upload" class="w-full md:w-60 flex-shrink-0">
-                <!-- Placeholder when no image is selected -->
-                <div
-                  v-if="!imageUrl"
-                  @click="imageUploadHandleClick"
-                  class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
-                >
-                  <div class="space-y-1 text-center">
-                    <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
-                    <p class="text-sm text-gray-600">Click to upload image</p>
-                  </div>
-                </div>
-
-                <!-- Image Preview when an image is selected -->
-                <div v-else class="relative w-full h-40">
-                  <img
-                    :src="imageUrl"
-                    alt="Image Preview"
-                    class="w-full h-full object-cover rounded-md shadow-md"
-                  />
-                  <button
-                    @click="clearImageHandle"
-                    type="button"
-                    class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
-                    title="Remove image"
+        <!-- Product Form -->
+        <div>
+          <div v-if="tab === 'inbounds'" class="px-6 py-2">
+            <form
+              method="post"
+              enctype="multipart/form-data"
+              action=""
+              id="add_product"
+              class="flex flex-col gap-4 my-4"
+              @submit.prevent
+            >
+              <div class="flex flex-col md:flex-row gap-4 items-center w-full">
+                <div id="image_upload" class="w-full md:w-60 flex-shrink-0">
+                  <!-- Placeholder when no image is selected -->
+                  <div
+                    v-if="!imageUrl"
+                    @click="imageUploadHandleClick"
+                    class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
                   >
-                    <svg
-                      class="h-5 w-5"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+                    <div class="space-y-1 text-center">
+                      <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+                      <p class="text-sm text-gray-600">Click to upload image</p>
+                    </div>
+                  </div>
+
+                  <!-- Image Preview when an image is selected -->
+                  <div v-else class="relative w-full h-40">
+                    <img
+                      :src="imageUrl"
+                      alt="Image Preview"
+                      class="w-full h-full object-cover rounded-md shadow-md"
+                    />
+                    <button
+                      @click="clearImageHandle"
+                      type="button"
+                      class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
+                      title="Remove image"
                     >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                <input
-                  type="file"
-                  class="hidden"
-                  accept="image/*"
-                  @change="handleImageUpload($event)"
-                  ref="imageInput"
-                />
-              </div>
-              <div class="flex flex-col gap-4 w-full">
-                <div class="flex flex-col md:flex-row gap-4">
-                  <AutoCompleteInput
-                    id="product_category"
-                    label="Select Category"
-                    placeholder="Type to search categories..."
-                    v-model="selectedCategory"
-                    :options="categories"
-                    option-label="category"
-                    option-value="category"
-                    :required="true"
-                    class="w-full max-w-md"
-                    @select="handleCategorySelect"
-                  />
-                  <StandardFloatingInput
-                    id="product_code"
-                    type="text"
-                    name="product_code"
-                    placeholder="Product Code"
-                    label="Product Code"
-                    v-model="codeProduct"
-                    class="max-w-md w-full"
-                    :disabled="true"
+                      <svg
+                        class="h-5 w-5"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <input
+                    type="file"
+                    class="hidden"
+                    accept="image/*"
+                    @change="handleImageUpload($event)"
+                    ref="imageInput"
                   />
                 </div>
-                <div class="flex flex-col flex-wrap gap-4 w-full">
+                <div class="flex flex-col gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
-                    <StandardFloatingInput
-                      id="product_name"
-                      type="text"
-                      name="product_name"
-                      placeholder="Product Name"
-                      label="Product Name"
-                      v-model="nameProduct"
-                      class="max-w-md w-full"
+                    <AutoCompleteInput
+                      id="product_category"
+                      label="Select Category"
+                      placeholder="Type to search categories..."
+                      v-model="selectedCategory"
+                      :options="categories"
+                      option-label="category"
+                      option-value="category"
+                      :required="true"
+                      class="w-full"
+                      @select="handleCategorySelect"
                     />
                     <StandardFloatingInput
-                      id="product_description"
+                      id="product_code"
                       type="text"
-                      name="product_description"
-                      placeholder="Description"
-                      label="Description"
-                      v-model="descriptionProduct"
-                      class="max-w-md w-full"
+                      name="product_code"
+                      placeholder="Product Code"
+                      label="Product Code"
+                      v-model="codeProduct"
+                      class="w-full"
+                      :disabled="true"
                     />
                   </div>
+                  <div class="flex flex-col flex-wrap gap-4 w-full">
+                    <div class="flex flex-col md:flex-row gap-4">
+                      <StandardFloatingInput
+                        id="product_name"
+                        type="text"
+                        name="product_name"
+                        placeholder="Product Name"
+                        label="Product Name"
+                        v-model="nameProduct"
+                        class="w-full"
+                      />
+                      <StandardFloatingInput
+                        id="product_description"
+                        type="text"
+                        name="product_description"
+                        placeholder="Description"
+                        label="Description"
+                        v-model="descriptionProduct"
+                        class="w-full"
+                      />
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4">
+                      <StandardFloatingInput
+                        id="product_price"
+                        type="text"
+                        name="product_price"
+                        placeholder="Price"
+                        label="Price"
+                        v-model="priceProduct"
+                        class="w-full"
+                        @handlePriceInput="handlePriceInput"
+                      />
+                      <StandardFloatingInput
+                        id="product_qty"
+                        type="number"
+                        name="product_qty"
+                        placeholder="Quantity"
+                        label="Quantity"
+                        v-model="quantityProduct"
+                        class="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+          <div v-else class="px-6 py-2">
+            <form
+              method="post"
+              enctype="multipart/form-data"
+              action=""
+              id="add_outbound"
+              class="flex flex-col gap-4 my-4"
+              @submit.prevent
+            >
+              <div class="flex flex-col md:flex-row gap-4 items-center w-full">
+                <div class="flex flex-col gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
-                    <StandardFloatingInput
-                      id="product_price"
-                      type="text"
-                      name="product_price"
-                      placeholder="Price"
-                      label="Price"
-                      v-model="priceProduct"
-                      class="max-w-md w-full"
-                      @handlePriceInput="handlePriceInput"
+                    <FloatingInputWithImage
+                      id="outbound_product"
+                      label="Select Product"
+                      placeholder="Type to search products..."
+                      v-model="selectedProductOutbound"
+                      :options="products"
+                      option-label="product_name"
+                      option-value="Product_code"
+                      image-src=""
+                      :required="true"
+                      class="w-full"
+                      @select="handleCategorySelect"
                     />
                     <StandardFloatingInput
-                      id="product_qty"
+                      id="outbound_quantity"
                       type="number"
-                      name="product_qty"
+                      name="outbound_quantity"
                       placeholder="Quantity"
                       label="Quantity"
-                      v-model="quantityProduct"
-                      class="max-w-md w-full"
+                      v-model="quantityOutbound"
+                      class="w-full"
+                    />
+                  </div>
+                  <div class="flex flex-col md:flex-row gap-4">
+                    <StandardFloatingInput
+                      id="outbound_destination"
+                      type="text"
+                      name="outbound_destination"
+                      placeholder="Customer"
+                      label="Customer"
+                      v-model="destinationOutbound"
+                      class="w-full"
+                    />
+                    <StandardFloatingInput
+                      id="outbound_notes"
+                      type="text"
+                      name="outbound_notes"
+                      placeholder="Notes (optional)"
+                      label="Notes (optional)"
+                      v-model="notesOutbound"
+                      class="w-full"
                     />
                   </div>
                 </div>
               </div>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Outbounds Items Form -->
-      <div class="bg-white rounded-xl mb-4 shadow" v-if="tab === 'outbounds'">
-        <div
-          class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
-        >
-          <h1 class="text-xl font-bold self-start md:self-center">Add Outbound Items</h1>
-          <button
-            type="button"
-            @click="posOutbounds"
-            class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
-          >
-            Add Outbound
-          </button>
-        </div>
-        <div class="px-6 py-2">
-          <form
-            method="post"
-            enctype="multipart/form-data"
-            action=""
-            id="add_outbound"
-            class="flex flex-col gap-4 my-4"
-            @submit.prevent
-          >
-            <div class="flex flex-col md:flex-row gap-4 items-center w-full">
-              <div class="flex flex-col gap-4 w-full">
-                <div class="flex flex-col md:flex-row gap-4">
-                  <FloatingInputWithImage
-                    id="outbound_product"
-                    label="Select Product"
-                    placeholder="Type to search products..."
-                    v-model="selectedProductOutbound"
-                    :options="products"
-                    option-label="product_name"
-                    option-value="Product_code"
-                    image-src=""
-                    :required="true"
-                    class="w-full"
-                    @select="handleCategorySelect"
-                  />
-                  <StandardFloatingInput
-                    id="outbound_quantity"
-                    type="number"
-                    name="outbound_quantity"
-                    placeholder="Quantity"
-                    label="Quantity"
-                    v-model="quantityOutbound"
-                    class="w-full"
-                  />
-                </div>
-                <div class="flex flex-col md:flex-row gap-4">
-                  <StandardFloatingInput
-                    id="outbound_destination"
-                    type="text"
-                    name="outbound_destination"
-                    placeholder="Destination"
-                    label="Destination"
-                    v-model="destinationOutbound"
-                    class="w-full"
-                  />
-                  <StandardFloatingInput
-                    id="outbound_notes"
-                    type="text"
-                    name="outbound_notes"
-                    placeholder="Notes (optional)"
-                    label="Notes (optional)"
-                    v-model="notesOutbound"
-                    class="w-full"
-                  />
-                </div>
-              </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
 

@@ -317,11 +317,14 @@ onMounted(async () => {
       </button>
     </div>
 
-    <div class="bg-white rounded-xl shadow min-h-8/12">
+    <div class="bg-white rounded-xl shadow max-h-fit">
       <div
-        class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
-        <h1 class="text-xl font-bold self-start md:self-center">Warehouse Map</h1>
+        <div>
+          <h1 class="text-2xl font-bold">Warehouse</h1>
+          <p class="text-[var(--color-secondary)] opacity-80 mt-1">Manage your warehouses</p>
+        </div>
         <div v-if="isLoading" class="text-sm">
           <i class="fa-solid fa-spinner fa-spin mr-2"></i>
           Loading...
@@ -334,10 +337,11 @@ onMounted(async () => {
           Add Warehouse
         </button>
       </div>
+
       <div id="map" class="w-full h-full min-h-[400px]"></div>
     </div>
 
-    <div class="mt-10 pb-10 gap-4">
+    <div class="mt-20 pb-10 gap-4">
       <!-- Table Warehouse -->
       <TableWarehouse
         :warehouseList="warehouseList"

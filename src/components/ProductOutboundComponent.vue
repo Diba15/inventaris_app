@@ -248,7 +248,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
               @click="sortBy('destination')"
             >
-              Destination
+              Customer
               <span v-if="sortKey === 'destination'">
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
