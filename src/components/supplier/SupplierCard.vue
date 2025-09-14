@@ -25,6 +25,16 @@ defineProps({
     default: 'N/A',
   },
 })
+
+const emit = defineEmits(['openDeleteModal', 'openEditModal'])
+
+function openDeleteModal(idSupplier) {
+  emit('openDeleteModal', idSupplier)
+}
+
+function openEditModal(idSupplier) {
+  emit('openEditModal', idSupplier)
+}
 </script>
 
 <template>
@@ -37,8 +47,7 @@ defineProps({
       <div class="w-32 h-32 mb-4 flex items-center justify-center bg-gray-100">
         <img v-if="img" :src="img" alt="Supplier Image" class="w-full h-full object-cover" />
         <div v-else class="text-center">
-          <i class="fa fa-image text-4xl text-gray-400"></i>
-          <p class="text-xs text-gray-400 mt-1">No Image</p>
+          <img :src="`https://ui-avatars.com/api/?name=${name}&background=random&size=100`" alt="">
         </div>
       </div>
 
@@ -58,7 +67,7 @@ defineProps({
         <div class="flex items-start">
           <i class="fa fa-phone-alt text-yellow-500 w-5 mt-1"></i>
           <div class="ml-3">
-            <h2 class="text-xs font-semibold text-gray-500">Contact</h2>
+            <h2 class="text-xs font-semibold text-gray-500">Contact - <i class="fa fa-whatsapp text-green-500"></i> Whatsapp Available</h2>
             <p class="text-sm text-gray-700">{{ contact }}</p>
           </div>
         </div>
@@ -74,12 +83,14 @@ defineProps({
       <!-- Detail Button -->
       <div class="flex justify-center gap-2">
         <button
+          @click="openEditModal(id)"
           class="flex items-center gap-2 mt-6 text-white font-bold bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:outline-none focus:ring-yellow-300 py-2.5 px-12 rounded-lg shadow-md transition-transform transform hover:translate-y-[-2px]"
         >
           <span><i class="fa fa-pen"></i></span>
           <p>Edit</p>
         </button>
         <button
+          @click="openDeleteModal(id)"
           class="flex items-center gap-2 mt-6 text-white font-bold bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 py-2.5 px-12 rounded-lg shadow-md transition-transform transform hover:translate-y-[-2px]"
         >
           <span><i class="fa fa-trash"></i></span>

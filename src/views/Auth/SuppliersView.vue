@@ -3,6 +3,7 @@ import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 import SupplierCard from '@/components/supplier/SupplierCard.vue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import CustomModal from '@/components/CustomModal.vue'
+import AlertComponent from '@/components/AlertComponent.vue'
 import axios from 'axios'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 
@@ -18,6 +19,13 @@ const startPage = ref(0)
 const totalData = ref(0)
 const currentPage = ref(1)
 const searchTerm = ref('') // Add reactive search term
+
+// Delete Modal
+const deleteId = ref(null)
+const show = ref(false)
+const message = ref('')
+const modalType = ref('warning')
+// const imageDelete = ref(null)
 
 const carousel = ref(null) // Template ref untuk elemen carousel
 
@@ -51,11 +59,15 @@ async function postSuppliers() {
       supplier_name: newSupplier.value.name,
       supplier_address: newSupplier.value.address,
       pic_contact: newSupplier.value.contact,
-      pic_supplier: newSupplier.value.picName,
+      pic_supplier: newSupplier.value.supplier_pic,
     }
 
     if (!data.supplier_name || !data.supplier_address || !data.pic_contact || !data.pic_supplier) {
-      console.error('Please fill in all required fields')
+      notif.reject({
+        type: 'warning',
+        message: 'Please fill in all required fields',
+        duration: 3000,
+      })
       return
     }
 
@@ -99,6 +111,67 @@ async function postSuppliers() {
     notif.reject({
       type: 'error',
       message: 'Failed to add supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+async function deleteSupplier() {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Deleting supplier...',
+    duration: 0,
+  })
+  try {
+    await axios.delete(`${STRAPI_URL}/api/suppliers/${deleteId.value}`)
+    await getSuppliers()
+    show.value = false // Close the modal
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier deleted successfully!',
+      duration: 3000,
+    })
+
+    deleteId.value = null
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to delete supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+async function editSupplier(editId) {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Editing supplier...',
+    duration: 0,
+  })
+  try {
+    await axios.put(`${STRAPI_URL}/api/suppliers/${editId.value}`, {
+      data: {
+        supplier_name: newSupplier.value.name,
+        supplier_address: newSupplier.value.address,
+        pic_contact: newSupplier.value.contact,
+        pic_supplier: newSupplier.value.supplier_pic,
+      },
+    })
+    await getSuppliers()
+    isAddModalOpen.value = false
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier edited successfully!',
+      duration: 3000,
+    })
+
+    editId.value = null
+  } catch (error) {
+    console.error('Error editing product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to edit supplier. Please try again.',
       duration: 3000,
     })
   }
@@ -224,7 +297,11 @@ async function postSuppliers() {
 //   },
 // ])
 
-const isAddModalOpen = ref(false)
+const isAddModalOpen = ref(false) // Add modal
+const modalMessage = ref('')
+const type = ref('')
+const editId = ref(null)
+
 const newSupplier = ref({
   name: '',
   address: '',
@@ -234,24 +311,53 @@ const newSupplier = ref({
 
 function openAddModal() {
   isAddModalOpen.value = true
+  modalMessage.value = 'Add New Supplier'
+  type.value = 'add'
 }
 
-function closeAddModal() {
+function closeModal() {
   isAddModalOpen.value = false
   // Reset form fields
   newSupplier.value = {
     name: '',
-    arrive_at: '',
-    courier_name: '',
-    total_cost: null,
-    img: '',
-    other: '',
+    address: '',
+    contact: '',
+    supplier_pic: '',
   }
 }
 
-function handleAddSupplier() {
-  postSuppliers()
-  closeAddModal()
+function openDeleteModal(id) {
+  message.value = `Are you sure you want to delete?`
+  show.value = true
+  modalType.value = 'delete'
+  deleteId.value = id
+  // imageDelete.value = imageId // Store the image ID for deletion
+}
+
+function openEditModal(id) {
+  // Find the supplier by ID
+  const supplier = suppliers.value.find((s) => s.documentId === id)
+
+  isAddModalOpen.value = true
+  newSupplier.value = {
+    name: supplier.supplier_name,
+    address: supplier.supplier_address,
+    contact: supplier.pic_contact,
+    supplier_pic: supplier.pic_supplier,
+  }
+
+  modalMessage.value = 'Edit Supplier'
+  type.value = 'edit'
+  editId.value = id
+}
+
+function handleSupplierModal() {
+  if (type.value === 'add') {
+    postSuppliers()
+  } else if (type.value === 'edit') {
+    editSupplier(editId)
+  }
+  closeModal()
 }
 
 // Enhanced search functionality for both table and cards
@@ -323,11 +429,9 @@ const clearSearch = () => {
 }
 
 onMounted(async () => {
-  if (suppliers.value.length > 0) {
-    return
+  if (suppliers.value === null || suppliers.value.length <= 0) {
+    await getSuppliers()
   }
-
-  await getSuppliers()
 
   watchEffect(() => {
     totalData.value = filteredSuppliers.value.length
@@ -394,6 +498,7 @@ onMounted(async () => {
           <supplier-card
             v-for="supplier in displayedSuppliers"
             :key="supplier.id"
+            :id="supplier.documentId"
             :name="supplier.supplier_name"
             :img="supplier?.img"
             :picName="supplier.pic_supplier"
@@ -401,6 +506,8 @@ onMounted(async () => {
             :address="supplier.supplier_address"
             class="supplier-card-item"
             :class="{ highlighted: searchTerm }"
+            @open-delete-modal="openDeleteModal"
+            @open-edit-modal="openEditModal"
           />
 
           <div
@@ -432,10 +539,10 @@ onMounted(async () => {
 
     <custom-modal
       :is-add-modal-open="isAddModalOpen"
-      @close-add-modal="closeAddModal"
-      modal-title="Add New Supplier"
+      @close-add-modal="closeModal"
+      :modal-title="modalMessage"
     >
-      <form @submit.prevent="handleAddSupplier" class="space-y-4">
+      <form @submit.prevent="handleSupplierModal" class="space-y-4">
         <StandardFloatingInput
           label="Supplier Name"
           type="text"
@@ -457,7 +564,7 @@ onMounted(async () => {
           type="text"
           id="pic_name"
           name="pic_name"
-          v-model="newSupplier.picName"
+          v-model="newSupplier.supplier_pic"
         />
         <StandardFloatingInput
           label="PIC Contact"
@@ -469,7 +576,7 @@ onMounted(async () => {
         <div class="flex justify-end gap-4 pt-4">
           <button
             type="button"
-            @click="closeAddModal"
+            @click="closeModal"
             class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
           >
             Cancel
@@ -489,6 +596,14 @@ onMounted(async () => {
         <NotificationProgress :item="item" />
       </Notification>
     </Notivue>
+
+    <alert-component
+      :message="message"
+      :show="show"
+      @close="show = false"
+      :type="modalType"
+      @confirm="deleteSupplier"
+    />
   </div>
 </template>
 
