@@ -3,93 +3,233 @@ import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 import SupplierCard from '@/components/supplier/SupplierCard.vue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import CustomModal from '@/components/CustomModal.vue'
+import axios from 'axios'
+import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 
 defineOptions({
   name: 'supplier_component',
 })
 
-const dummySupplierList = ref([
-  {
-    id: 1,
-    name: 'P.T Indofood',
-    arrive_at: '2022-01-01',
-    courier_name: 'JNE',
-    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Indofood_logo-en.svg/2560px-Indofood_logo-en.svg.png',
-    total_cost: 10000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-01 00:00:00',
-  },
-  {
-    id: 2,
-    name: 'Unilever',
-    arrive_at: '2022-01-02',
-    courier_name: 'J&T',
-    img: 'https://upload.wikimedia.org/wikipedia/id/3/37/Unilever.png',
-    total_cost: 20000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-02 00:00:00',
-  },
-  {
-    id: 3,
-    name: 'Wings Group',
-    arrive_at: '2022-01-03',
-    courier_name: 'SiCepat',
-    img: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Wings_%28Indonesian_company%29_logo.svg',
-    total_cost: 30000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-03 00:00:00',
-  },
-  {
-    id: 4,
-    name: 'Orang Tua',
-    arrive_at: '2022-01-04',
-    courier_name: 'JNE',
-    img: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6rsc0issrrP5wz90_ALseipslxuZq40VxV5HzFFtGCVCE2XeQPk8ZoRQWBPCRsVtAHwFDYsCQyqJqpuuEP71wdKHjC8gdFdam-wNfsbwiFrQCtByDJdov1Llh9bnI9NfIx-JIDq7fUB14PpPKqG0oDadVNmedyploPT9JiWF_98UVLnjRjXyRpnnMZszG/s804/ot-svg.webp',
-    total_cost: 40000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-04 00:00:00',
-  },
-  {
-    id: 5,
-    name: 'Nestle',
-    arrive_at: '2022-01-05',
-    courier_name: 'J&T',
-    img: 'https://logos-world.net/wp-content/uploads/2020/09/Nestle-Logo.png',
-    total_cost: 50000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-05 00:00:00',
-  },
-  {
-    id: 6,
-    name: 'Mayora',
-    arrive_at: '2022-01-06',
-    courier_name: 'SiCepat',
-    img: '',
-    total_cost: 60000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-06 00:00:00',
-  },
-  {
-    id: 7,
-    name: 'Procter & Gamble',
-    arrive_at: '2022-01-07',
-    courier_name: 'JNE',
-    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Procter_%26_Gamble_logo.svg/1024px-Procter_%26_Gamble_logo.svg.png',
-    total_cost: 70000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-07 00:00:00',
-  },
-])
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
+const suppliers = ref([])
 
-// --- LOGIKA MODAL TAMBAH SUPPLIER ---
+// Enhanced state management
+const startPage = ref(0)
+const totalData = ref(0)
+const currentPage = ref(1)
+const searchTerm = ref('') // Add reactive search term
+
+const carousel = ref(null) // Template ref untuk elemen carousel
+
+// Limit supplier for display
+const displayLimit = ref(6)
+
+try {
+  suppliers.value = JSON.parse(localStorage.getItem('suppliers'))
+} catch (error) {
+  console.error('Error parsing suppliers from localStorage:', error)
+}
+
+async function getSuppliers() {
+  const response = await axios.get(`${STRAPI_URL}/api/suppliers?populate=*`)
+  suppliers.value = response.data.data
+
+  localStorage.setItem('suppliers', JSON.stringify(suppliers.value))
+
+  // Sort supplier by date created desc
+  suppliers.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+}
+
+async function postSuppliers() {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Adding supplier...',
+    duration: 0,
+  })
+  try {
+    const data = {
+      supplier_name: newSupplier.value.name,
+      supplier_address: newSupplier.value.address,
+      pic_contact: newSupplier.value.contact,
+      pic_supplier: newSupplier.value.picName,
+    }
+
+    if (!data.supplier_name || !data.supplier_address || !data.pic_contact || !data.pic_supplier) {
+      console.error('Please fill in all required fields')
+      return
+    }
+
+    await axios.post(`${STRAPI_URL}/api/suppliers`, {
+      data,
+    })
+
+    // // Upload image if available
+    // if (selectedFile.value) {
+    //   const fd = new FormData()
+    //   fd.append('files', selectedFile.value)
+
+    //   const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
+    //     method: 'POST',
+    //     body: fd,
+    //   })
+
+    //   if (uploadRes.ok) {
+    //     const uploadResult = await uploadRes.json()
+    //     const imageId = uploadResult[0].id
+
+    //     // Update product with image ID
+    //     await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
+    //       data: {
+    //         product_image: imageId,
+    //       },
+    //     })
+    //   }
+    // }
+
+    await getSuppliers()
+
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier added successfully!',
+      duration: 3000,
+    })
+  } catch (error) {
+    // Handle errors
+    console.error('Error posting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to add supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+// const dummySupplierList = ref([
+//   {
+//     id: 1,
+//     name: 'P.T Indofood',
+//     pic_name: 'Budi Santoso',
+//     contact: '0812-1111-2222',
+//     address: 'Sudirman Plaza, Jl. Jenderal Sudirman Kav. 76-78, Jakarta',
+//     arrive_at: '2022-01-01',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Indofood_logo-en.svg/2560px-Indofood_logo-en.svg.png',
+//     total_cost: 10000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-01 00:00:00',
+//   },
+//   {
+//     id: 2,
+//     name: 'Unilever',
+//     pic_name: 'Citra Lestari',
+//     contact: '0813-2222-3333',
+//     address: 'Grha Unilever, Jl. BSD Boulevard Barat, Green Office Park Kav. 3, Tangerang',
+//     arrive_at: '2022-01-02',
+//     courier_name: 'J&T',
+//     img: 'https://upload.wikimedia.org/wikipedia/id/3/37/Unilever.png',
+//     total_cost: 20000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-02 00:00:00',
+//   },
+//   {
+//     id: 3,
+//     name: 'Wings Group',
+//     pic_name: 'Agus Wijaya',
+//     contact: '0815-3333-4444',
+//     address: 'Jl. Tipar Cakung Kav. F 5-7, Cakung Barat, Jakarta Timur',
+//     arrive_at: '2022-01-03',
+//     courier_name: 'SiCepat',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Wings_%28Indonesian_company%29_logo.svg',
+//     total_cost: 30000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-03 00:00:00',
+//   },
+//   {
+//     id: 4,
+//     name: 'Orang Tua',
+//     pic_name: 'Dewi Anggraini',
+//     contact: '0817-4444-5555',
+//     address: 'OT Building, Jl. Lingkar Luar Barat Kav. 35-36, Cengkareng, Jakarta Barat',
+//     arrive_at: '2022-01-04',
+//     courier_name: 'JNE',
+//     img: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6rsc0issrrP5wz90_ALseipslxuZq40VxV5HzFFtGCVCE2XeQPk8ZoRQWBPCRsVtAHwFDYsCQyqJqpuuEP71wdKHjC8gdFdam-wNfsbwiFrQCtByDJdov1Llh9bnI9NfIx-JIDq7fUB14PpPKqG0oDadVNmedyploPT9JiWF_98UVLnjRjXyRpnnMZszG/s804/ot-svg.webp',
+//     total_cost: 40000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-04 00:00:00',
+//   },
+//   {
+//     id: 5,
+//     name: 'Nestle',
+//     pic_name: 'Rahmat Hidayat',
+//     contact: '0818-5555-6666',
+//     address: 'Perkantoran Hijau Arkadia, Tower B, Jl. TB Simatupang Kav. 88, Jakarta Selatan',
+//     arrive_at: '2022-01-05',
+//     courier_name: 'J&T',
+//     img: 'https://logos-world.net/wp-content/uploads/2020/09/Nestle-Logo.png',
+//     total_cost: 50000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-05 00:00:00',
+//   },
+//   {
+//     id: 6,
+//     name: 'Mayora',
+//     pic_name: 'Sari Puspita',
+//     contact: '0819-6666-7777',
+//     address: 'Gedung Mayora, Jl. Tomang Raya No. 21-23, Jakarta Barat',
+//     arrive_at: '2022-01-06',
+//     courier_name: 'SiCepat',
+//     img: '',
+//     total_cost: 60000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-06 00:00:00',
+//   },
+//   {
+//     id: 7,
+//     name: 'Procter & Gamble',
+//     pic_name: 'Andi Pratama',
+//     contact: '0852-7777-8888',
+//     address: 'Sentral Senayan 8, Jl. Asia Afrika No. 8, Jakarta Pusat',
+//     arrive_at: '2022-01-07',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Procter_%26_Gamble_logo.svg/1024px-Procter_%26_Gamble_logo.svg.png',
+//     total_cost: 70000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-07 00:00:00',
+//   },
+//   {
+//     id: 8,
+//     name: 'GarudaFood',
+//     pic_name: 'Eka Kurniawan',
+//     contact: '0856-8888-9999',
+//     address: 'Wisma Garudafood, Jl. Bintaro Raya No. 10A, Jakarta Selatan',
+//     arrive_at: '2022-01-08',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/id/thumb/d/d1/Garudafood_logo.svg/1200px-Garudafood_logo.svg.png',
+//     total_cost: 80000,
+//     other: 'Another supplier description.',
+//     created_at: '2022-01-08 00:00:00',
+//   },
+//   {
+//     id: 9,
+//     name: 'Kao Corporation',
+//     pic_name: 'Fitriani',
+//     contact: '0857-9999-0000',
+//     address: 'Jl. MT Haryono Kav. 33, Jakarta Industrial Estate Pulogadung, Jakarta Timur',
+//     arrive_at: '2022-01-09',
+//     courier_name: 'J&T',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Kao_logo.svg/1200px-Kao_logo.svg.png',
+//     total_cost: 90000,
+//     other: 'Details about Kao supply.',
+//     created_at: '2022-01-09 00:00:00',
+//   },
+// ])
+
 const isAddModalOpen = ref(false)
 const newSupplier = ref({
   name: '',
-  arrive_at: '',
-  courier_name: '',
-  total_cost: null,
-  img: '',
-  other: '',
+  address: '',
+  contact: '',
+  supplier_pic: '',
 })
 
 function openAddModal() {
@@ -110,81 +250,25 @@ function closeAddModal() {
 }
 
 function handleAddSupplier() {
-  if (!newSupplier.value.name || !newSupplier.value.arrive_at) {
-    alert('Supplier Name and Arrive At date are required.')
-    return
-  }
-  const supplierToAdd = {
-    id: Date.now(), // Gunakan ID unik sementara
-    ...newSupplier.value,
-    total_cost: Number(newSupplier.value.total_cost) || 0,
-    created_at: new Date().toISOString(),
-  }
-  dummySupplierList.value.unshift(supplierToAdd) // Tambahkan ke awal list
+  postSuppliers()
   closeAddModal()
 }
-// Enhanced state management
-const startPage = ref(0)
-const totalData = ref(0)
-const currentPage = ref(1)
-const searchTerm = ref('') // Add reactive search term
-
-const carousel = ref(null) // Template ref untuk elemen carousel
-const isDown = ref(false)
-const startX = ref(0)
-const scrollLeft = ref(0)
-
-function handleMouseDown(e) {
-  if (!carousel.value) return
-  isDown.value = true
-  carousel.value.classList.add('active')
-  startX.value = e.pageX - carousel.value.offsetLeft
-  scrollLeft.value = carousel.value.scrollLeft
-}
-
-function handleMouseLeave() {
-  if (!carousel.value) return
-  isDown.value = false
-  carousel.value.classList.remove('active')
-}
-
-function handleMouseUp() {
-  if (!carousel.value) return
-  isDown.value = false
-  carousel.value.classList.remove('active')
-}
-
-function handleMouseMove(e) {
-  if (!isDown.value || !carousel.value) return
-  e.preventDefault()
-  const x = e.pageX - carousel.value.offsetLeft
-  const walk = (x - startX.value) * 2 // Angka 2 untuk mempercepat scroll
-  carousel.value.scrollLeft = scrollLeft.value - walk
-}
-
-onMounted(() => {
-  watchEffect(() => {
-    totalData.value = filteredSuppliers.value.length
-  })
-})
 
 // Enhanced search functionality for both table and cards
 const filteredSuppliers = computed(() => {
   if (!searchTerm.value.trim()) {
-    return dummySupplierList.value
+    return suppliers.value
   }
 
   const search = searchTerm.value.toLowerCase().trim()
 
-  return dummySupplierList.value.filter((supplier) => {
+  return suppliers.value.filter((supplier) => {
     // Search in multiple fields
     const searchableFields = [
-      supplier.name?.toLowerCase() || '',
-      supplier.arrive_at?.toLowerCase() || '',
-      supplier.courier_name?.toLowerCase() || '',
-      supplier.total_cost?.toString() || '',
-      supplier.other?.toLowerCase() || '',
-      supplier.created_at?.toLowerCase() || '',
+      supplier.supplier_name?.toLowerCase() || '',
+      supplier.supplier_address?.toLowerCase() || '',
+      supplier.pic_contact?.toLowerCase() || '',
+      supplier.pic_supplier?.toLowerCase() || '',
     ]
 
     // Check if any field contains the search term
@@ -192,8 +276,20 @@ const filteredSuppliers = computed(() => {
   })
 })
 
-// Filtered suppliers for card carousel
-const filteredSuppliersForCards = computed(() => filteredSuppliers.value)
+// Display Suppliers
+const displayedSuppliers = computed(() => {
+  return filteredSuppliers.value.slice(0, displayLimit.value)
+})
+
+// Check that more suppliers are available
+const hasMoreSuppliers = computed(() => {
+  return displayedSuppliers.value.length < filteredSuppliers.value.length
+})
+
+// Function to load more suppliers
+function loadMore() {
+  displayLimit.value += 6 // Increase the limit to show 6 more cards
+}
 
 // Enhanced search function
 const handleSearch = (event) => {
@@ -201,6 +297,7 @@ const handleSearch = (event) => {
   // Reset to first page when searching
   startPage.value = 0
   currentPage.value = 1
+  displayLimit.value = 6 // NEW: Reset display limit on new search
 
   nextTick(() => {
     const input = document.querySelector('#current-page input')
@@ -215,6 +312,7 @@ const clearSearch = () => {
   searchTerm.value = ''
   startPage.value = 0
   currentPage.value = 1
+  displayLimit.value = 6
 
   nextTick(() => {
     const searchInput = document.querySelector('#searchSupplier')
@@ -223,6 +321,18 @@ const clearSearch = () => {
     if (pageInput) pageInput.value = 1
   })
 }
+
+onMounted(async () => {
+  if (suppliers.value.length > 0) {
+    return
+  }
+
+  await getSuppliers()
+
+  watchEffect(() => {
+    totalData.value = filteredSuppliers.value.length
+  })
+})
 </script>
 
 <template>
@@ -245,12 +355,10 @@ const clearSearch = () => {
 
       <div class="py-4 px-8 flex flex-col gap-4">
         <div class="relative w-full max-w-[600px] mx-auto">
-          <!-- Search Icon -->
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="fa fa-search text-gray-500"></i>
           </div>
 
-          <!-- Input Field -->
           <input
             type="text"
             id="searchSupplier"
@@ -260,8 +368,7 @@ const clearSearch = () => {
             @input="handleSearch"
           />
 
-          <!-- Clear Search Button -->
-          <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <div v-if="searchTerm" class="absolute inset-y-0 right-0 pr-3 flex items-center">
             <button
               @click="clearSearch"
               class="text-gray-500 hover:text-red-500 focus:outline-none"
@@ -272,40 +379,32 @@ const clearSearch = () => {
           </div>
         </div>
 
-        <!-- Search Results Info for Cards -->
-        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600 text-center">
-          <span v-if="filteredSuppliersForCards.length > 0">
-            Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
+        <div v-if="searchTerm" class="px-0 mb-2 text-sm text-gray-600 text-center">
+          <span v-if="filteredSuppliers.length > 0">
+            Found {{ filteredSuppliers.length }} supplier(s) for "{{ searchTerm }}"
           </span>
           <span v-else class="text-orange-600"> No suppliers found for "{{ searchTerm }}" </span>
         </div>
 
-        <!-- Enhanced Supplier Carousel with Drag Events -->
         <div
           id="supplier-carousel"
           ref="carousel"
-          class="flex flex-nowrap gap-10 items-center overflow-x-scroll max-w-screen"
-          @mousedown="handleMouseDown"
-          @mouseleave="handleMouseLeave"
-          @mouseup="handleMouseUp"
-          @mousemove="handleMouseMove"
+          class="flex flex-wrap gap-10 items-center justify-center"
         >
-          <!-- Show filtered suppliers in cards -->
           <supplier-card
-            v-for="supplier in filteredSuppliersForCards"
+            v-for="supplier in displayedSuppliers"
             :key="supplier.id"
-            :name="supplier.name"
-            :courier="supplier.courier_name"
-            :cost="supplier.total_cost"
-            :arrive-date="supplier.arrive_at"
-            :img="supplier.img"
+            :name="supplier.supplier_name"
+            :img="supplier?.img"
+            :picName="supplier.pic_supplier"
+            :contact="supplier.pic_contact"
+            :address="supplier.supplier_address"
             class="supplier-card-item"
-            :class="{ highlighted: isSearching }"
+            :class="{ highlighted: searchTerm }"
           />
 
-          <!-- No results state for cards -->
           <div
-            v-if="!filteredSuppliersForCards.length"
+            v-if="!filteredSuppliers.length"
             class="flex flex-col items-center justify-center text-gray-400 min-w-[300px] p-8 border-2 border-dashed border-gray-300 rounded-lg"
           >
             <i class="fa fa-search text-4xl mb-2"></i>
@@ -319,10 +418,18 @@ const clearSearch = () => {
             </button>
           </div>
         </div>
+
+        <div v-if="hasMoreSuppliers" class="w-full flex justify-center mt-4">
+          <button
+            @click="loadMore"
+            class="px-6 py-2 bg-sub text-white font-semibold rounded-lg hover:bg-sub/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sub/80 transition-all"
+          >
+            Load More
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Add Supplier Modal -->
     <custom-modal
       :is-add-modal-open="isAddModalOpen"
       @close-add-modal="closeAddModal"
@@ -338,40 +445,26 @@ const clearSearch = () => {
           v-model="newSupplier.name"
         />
         <StandardFloatingInput
-          label="Arrive At"
-          type="date"
-          id="arrive_at"
-          name="arrive_at"
+          label="Address"
+          type="text"
+          id="address"
+          name="address"
           required
-          v-model="newSupplier.arrive_at"
+          v-model="newSupplier.address"
         />
         <StandardFloatingInput
-          label="Courier Name"
+          label="PIC Name"
           type="text"
-          id="courier_name"
-          name="courier_name"
-          v-model="newSupplier.courier_name"
+          id="pic_name"
+          name="pic_name"
+          v-model="newSupplier.picName"
         />
         <StandardFloatingInput
-          label="Total Cost"
+          label="PIC Contact"
           type="number"
-          id="total_cost"
-          name="total_cost"
-          v-model="newSupplier.total_cost"
-        />
-        <StandardFloatingInput
-          label="Image URL"
-          type="text"
-          id="img"
-          name="img"
-          v-model="newSupplier.img"
-        />
-        <StandardFloatingInput
-          label="Description"
-          type="textarea"
-          id="other"
-          name="other"
-          v-model="newSupplier.other"
+          id="pic_contact"
+          name="pic_contact"
+          v-model="newSupplier.contact"
         />
         <div class="flex justify-end gap-4 pt-4">
           <button
@@ -390,22 +483,18 @@ const clearSearch = () => {
         </div>
       </form>
     </custom-modal>
+
+    <Notivue v-slot="item">
+      <Notification :item="item" :theme="pastelTheme">
+        <NotificationProgress :item="item" />
+      </Notification>
+    </Notivue>
   </div>
 </template>
 
 <style scoped>
 #supplier-carousel::-webkit-scrollbar {
   display: none;
-}
-
-/* Style tambahan untuk feedback visual saat drag */
-#supplier-carousel {
-  cursor: grab;
-  user-select: none; /* Mencegah seleksi teks saat drag */
-}
-
-#supplier-carousel.active {
-  cursor: grabbing;
 }
 
 .hover-table tbody tr:hover {
