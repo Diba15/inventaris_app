@@ -1,8 +1,11 @@
 <script setup>
 defineProps({
   id: {
-    type: Number,
+    type: String,
     required: true,
+  },
+  imageDelete: {
+    default: '',
   },
   img: {
     type: String,
@@ -28,13 +31,15 @@ defineProps({
 
 const emit = defineEmits(['openDeleteModal', 'openEditModal'])
 
-function openDeleteModal(idSupplier) {
-  emit('openDeleteModal', idSupplier)
+function openDeleteModal(idSupplier, imageId) {
+  emit('openDeleteModal', idSupplier, imageId)
 }
 
 function openEditModal(idSupplier) {
   emit('openEditModal', idSupplier)
 }
+
+console.log()
 </script>
 
 <template>
@@ -45,7 +50,7 @@ function openEditModal(idSupplier) {
     <div class="flex flex-col items-center p-6">
       <!-- Supplier Image Section -->
       <div class="w-32 h-32 mb-4 flex items-center justify-center bg-gray-100">
-        <img v-if="img" :src="img" alt="Supplier Image" class="w-full h-full object-cover" />
+        <img v-if="img !== ''" :src="img" alt="Supplier Image" class="" />
         <div v-else class="text-center">
           <img :src="`https://ui-avatars.com/api/?name=${name}&background=random&size=100`" alt="">
         </div>
@@ -90,7 +95,7 @@ function openEditModal(idSupplier) {
           <p>Edit</p>
         </button>
         <button
-          @click="openDeleteModal(id)"
+          @click="openDeleteModal(id, imageDelete)"
           class="flex items-center gap-2 mt-6 text-white font-bold bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 py-2.5 px-12 rounded-lg shadow-md transition-transform transform hover:translate-y-[-2px]"
         >
           <span><i class="fa fa-trash"></i></span>

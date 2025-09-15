@@ -25,15 +25,43 @@ const deleteId = ref(null)
 const show = ref(false)
 const message = ref('')
 const modalType = ref('warning')
-// const imageDelete = ref(null)
+const imageDelete = ref(null)
 
 const carousel = ref(null) // Template ref untuk elemen carousel
 
 // Limit supplier for display
 const displayLimit = ref(6)
 
+// --- Image Upload State (Refactored) ---
+const imageInput = ref(null) // Ref for the file input element
+const imageUrl = ref(null) // Ref for the image preview URL
+const selectedFile = ref(null) // Ref to store the selected file object
+
+function imageUploadHandleClick() {
+  imageInput.value.click()
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    imageUrl.value = URL.createObjectURL(file)
+  }
+}
+
+function clearImageHandle() {
+  imageUrl.value = null
+  selectedFile.value = null
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
+}
+
 try {
   suppliers.value = JSON.parse(localStorage.getItem('suppliers'))
+
+  // Sort supplier by date created desc
+  suppliers.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 } catch (error) {
   console.error('Error parsing suppliers from localStorage:', error)
 }
@@ -71,40 +99,45 @@ async function postSuppliers() {
       return
     }
 
-    await axios.post(`${STRAPI_URL}/api/suppliers`, {
+    const response = await axios.post(`${STRAPI_URL}/api/suppliers`, {
       data,
     })
 
-    // // Upload image if available
-    // if (selectedFile.value) {
-    //   const fd = new FormData()
-    //   fd.append('files', selectedFile.value)
+    // Upload image if available
+    if (selectedFile.value) {
+      const fd = new FormData()
+      fd.append('files', selectedFile.value)
 
-    //   const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
-    //     method: 'POST',
-    //     body: fd,
-    //   })
+      const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
+        method: 'POST',
+        body: fd,
+      })
 
-    //   if (uploadRes.ok) {
-    //     const uploadResult = await uploadRes.json()
-    //     const imageId = uploadResult[0].id
+      if (uploadRes.ok) {
+        const uploadResult = await uploadRes.json()
+        const imageId = uploadResult[0].id
 
-    //     // Update product with image ID
-    //     await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
-    //       data: {
-    //         product_image: imageId,
-    //       },
-    //     })
-    //   }
-    // }
+        // Update product with image ID
+        await axios.put(`${STRAPI_URL}/api/suppliers/${response.data.data.documentId}`, {
+          data: {
+            supplier_image: imageId,
+          },
+        })
+      }
+    }
 
     await getSuppliers()
-
+    clearImageHandle()
     notif.resolve({
       type: 'success',
       message: 'Supplier added successfully!',
       duration: 3000,
     })
+
+    imageUrl.value = ''
+    modalMessage.value = ''
+    type.value = ''
+    editId.value = null
   } catch (error) {
     // Handle errors
     console.error('Error posting product:', error)
@@ -124,6 +157,7 @@ async function deleteSupplier() {
   })
   try {
     await axios.delete(`${STRAPI_URL}/api/suppliers/${deleteId.value}`)
+    await handleDeleteImage(imageDelete.value)
     await getSuppliers()
     show.value = false // Close the modal
     notif.resolve({
@@ -143,7 +177,15 @@ async function deleteSupplier() {
   }
 }
 
-async function editSupplier(editId) {
+async function handleDeleteImage(id) {
+  try {
+    await axios.delete(`${STRAPI_URL}/api/upload/files/${id}`)
+  } catch (error) {
+    console.error('Failed to delete old image:', error)
+  }
+}
+
+async function editSupplier() {
   const notif = push.promise({
     type: 'info',
     message: 'Editing supplier...',
@@ -158,7 +200,32 @@ async function editSupplier(editId) {
         pic_supplier: newSupplier.value.supplier_pic,
       },
     })
+
+    if (selectedFile.value) {
+      const oldImageId = suppliers.value.find((s) => s.documentId === editId.value)?.supplier_image
+        ?.id
+      const fd = new FormData()
+      fd.append('files', selectedFile.value)
+
+      // Upload the new image
+      const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, fd)
+      const newImageId = imageResponse.data[0]?.id
+
+      if (newImageId) {
+        // Link the new image to the product
+        await axios.put(`${STRAPI_URL}/api/suppliers/${editId.value}`, {
+          data: { supplier_image: newImageId },
+        })
+
+        // Delete the old image after the new one is successfully linked
+        if (oldImageId) {
+          await handleDeleteImage(oldImageId)
+        }
+      }
+    }
+
     await getSuppliers()
+    clearImageHandle()
     isAddModalOpen.value = false
     notif.resolve({
       type: 'success',
@@ -166,6 +233,9 @@ async function editSupplier(editId) {
       duration: 3000,
     })
 
+    imageUrl.value = ''
+    modalMessage.value = ''
+    type.value = ''
     editId.value = null
   } catch (error) {
     console.error('Error editing product:', error)
@@ -307,6 +377,7 @@ const newSupplier = ref({
   address: '',
   contact: '',
   supplier_pic: '',
+  supplier_image: '',
 })
 
 function openAddModal() {
@@ -323,15 +394,19 @@ function closeModal() {
     address: '',
     contact: '',
     supplier_pic: '',
+    supplier_image: '',
   }
+
+  imageUrl.value = ''
+  type.value = ''
 }
 
-function openDeleteModal(id) {
+function openDeleteModal(id, imageId) {
   message.value = `Are you sure you want to delete?`
   show.value = true
   modalType.value = 'delete'
   deleteId.value = id
-  // imageDelete.value = imageId // Store the image ID for deletion
+  imageDelete.value = imageId // Store the image ID for deletion
 }
 
 function openEditModal(id) {
@@ -346,6 +421,7 @@ function openEditModal(id) {
     supplier_pic: supplier.pic_supplier,
   }
 
+  imageUrl.value = supplier?.supplier_image?.url
   modalMessage.value = 'Edit Supplier'
   type.value = 'edit'
   editId.value = id
@@ -497,10 +573,11 @@ onMounted(async () => {
         >
           <supplier-card
             v-for="supplier in displayedSuppliers"
-            :key="supplier.id"
+            :key="supplier.documentId"
             :id="supplier.documentId"
             :name="supplier.supplier_name"
-            :img="supplier?.img"
+            :imageDelete="supplier?.supplier_image?.id"
+            :img="supplier?.supplier_image?.url"
             :picName="supplier.pic_supplier"
             :contact="supplier.pic_contact"
             :address="supplier.supplier_address"
@@ -543,6 +620,56 @@ onMounted(async () => {
       :modal-title="modalMessage"
     >
       <form @submit.prevent="handleSupplierModal" class="space-y-4">
+        <div id="image_upload" class="w-full md:w-60 flex-shrink-0 mx-auto">
+          <!-- Placeholder when no image is selected -->
+          <div
+            v-if="!imageUrl"
+            @click="imageUploadHandleClick"
+            class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+          >
+            <div class="space-y-1 text-center">
+              <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+              <p class="text-sm text-gray-600">Click to upload image</p>
+            </div>
+          </div>
+
+          <!-- Image Preview when an image is selected -->
+          <div v-else class="relative w-full h-40">
+            <img
+              :src="imageUrl"
+              alt="Image Preview"
+              class="w-full h-full object-cover rounded-md shadow-md"
+            />
+            <button
+              @click="clearImageHandle"
+              type="button"
+              class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
+              title="Remove image"
+            >
+              <svg
+                class="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </div>
+          <input
+            type="file"
+            class="hidden"
+            accept="image/*"
+            @change="handleImageUpload($event)"
+            ref="imageInput"
+          />
+        </div>
         <StandardFloatingInput
           label="Supplier Name"
           type="text"
