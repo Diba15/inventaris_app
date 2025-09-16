@@ -14,6 +14,8 @@ const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
 const categories = ref([]) // Reactive variable to hold categories
 const products = ref([]) // Reactive variable to hold products
+const suppliers = ref([])
+const warehouses = ref([])
 const message = ref('Ini Message')
 const show = ref(false)
 const modalType = ref('warning')
@@ -29,11 +31,16 @@ const selectedFile = ref(null) // Ref to store the selected file object
 
 // --- Input State for Inbounds ---
 const selectedCategory = ref('')
+const selectedSupplier = ref('')
+const selectedWarehouse = ref('')
 const codeProduct = ref('')
 const nameProduct = ref('')
 const descriptionProduct = ref('')
 const priceProduct = ref('')
 const quantityProduct = ref(1)
+const now = new Date()
+const transactionDate = ref(now.toISOString().slice(0, 10))
+const inboundId = ref('')
 
 // --- Input State for Outbounds ---
 const selectedProductOutbound = ref('')
@@ -79,6 +86,16 @@ const getCategories = async () => {
   categories.value = response.data.data
 
   localStorage.setItem('categories', JSON.stringify(categories.value))
+}
+
+const getSuppliers = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/suppliers?populate=*`)
+  suppliers.value = response.data.data
+}
+
+const getWarehouses = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/warehouses?populate=*`)
+  warehouses.value = response.data.data
 }
 
 const getProducts = async () => {
@@ -160,29 +177,35 @@ const deleteOutbound = async () => {
 
 // Function to get the next available product code based on category
 const getNextAvailableProductCode = (categoryName) => {
-  const matchedCategory = categories.value.find((cat) => cat.category === categoryName)
-  if (!matchedCategory) return `${categoryName}_1`
-
-  // Filter produk yang sesuai kategori
-  const filteredProducts = products.value.filter(
-    (product) => product.product_category.category === categoryName,
-  )
-
-  // Ambil angka dari code produk (misal: Roti_3 -> 3)
-  const usedNumbers = filteredProducts
-    .map((product) => {
-      const match = product.product_code?.match(new RegExp(`${categoryName}_(\\d+)`))
-      return match ? parseInt(match[1]) : null
-    })
-    .filter((n) => n !== null)
-
-  // Cari angka terkecil yang belum digunakan
-  let i = 1
-  while (usedNumbers.includes(i)) {
-    i++
+  // Guard clause: Jika tidak ada nama kategori, kembalikan string kosong.
+  if (!categoryName) {
+    return ''
   }
 
-  return `${categoryName}_${i}`
+  // 1. Filter produk yang hanya sesuai dengan kategori yang dipilih.
+  const productsInCategory = products.value.filter(
+    (product) => product.product_category?.category === categoryName,
+  )
+
+  // 2. **INI PERBAIKANNYA**: Jika tidak ada produk yang ditemukan di kategori ini,
+  //    artinya ini adalah produk pertama. Langsung kembalikan nomor 1.
+  if (productsInCategory.length === 0) {
+    return `${categoryName}_1`
+  }
+
+  // 3. Jika ADA produk, cari nomor tertinggi yang sudah digunakan.
+  const usedNumbers = productsInCategory.map((product) => {
+    // Gunakan regex yang lebih ketat (^) untuk memastikan kecocokan dari awal string
+    const match = product.product_code?.match(new RegExp(`^${categoryName}_(\\d+)`))
+    // Jika cocok, ambil angkanya. Jika tidak, anggap saja 0.
+    return match ? parseInt(match[1], 10) : 0
+  })
+
+  // 4. Temukan angka tertinggi dari semua nomor yang digunakan.
+  const highestNumber = Math.max(...usedNumbers)
+
+  // 5. Kode produk baru adalah angka tertinggi + 1.
+  return `${categoryName}_${highestNumber + 1}`
 }
 
 // Handle price input to format it correctly
@@ -205,8 +228,13 @@ const postProduct = async () => {
       (cat) => cat.category === selectedCategory.value,
     )?.documentId
 
+    console.log('Category ID:', category_id)
+
     const data = {
+      in_id: inboundId.value,
       product_category: category_id,
+      warehouse: selectedWarehouse.value,
+      supplier_id: selectedSupplier.value,
       product_code: codeProduct.value,
       product_name: nameProduct.value,
       product_description: descriptionProduct.value,
@@ -249,7 +277,7 @@ const postProduct = async () => {
         const imageId = uploadResult[0].id
 
         // Update product with image ID
-        await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data.documentId}`, {
+        await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data?.documentId}`, {
           data: {
             product_image: imageId,
           },
@@ -323,7 +351,7 @@ const posOutbounds = async () => {
     await axios.put(`${STRAPI_URL}/api/products/${product_id}`, {
       data: {
         product_qty:
-          products.value.find((prod) => prod.documentId === product_id)?.product_qty -
+          products.value.find((prod) => prod?.documentId === product_id)?.product_qty -
           quantityOutbound.value,
       },
     })
@@ -359,13 +387,22 @@ onMounted(() => {
     if (categories.value.length === 0) {
       getCategories() // Fetch categories when the component is mounted
     }
-    console.log(categories.value)
+
+    if (suppliers.value.length === 0) {
+      getSuppliers() // Fetch suppliers when the component is mounted
+    }
+
+    if (warehouses.value.length === 0) {
+      getWarehouses() // Fetch warehouses when the component is mounted
+    }
 
     getProducts() // Fetch products when the component is mounted
     getOutbounds()
 
+    inboundId.value = `INB-${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}-${products.value.length + 1}`
+
     watchEffect(() => {
-      if (!selectedCategory.value || products.value.length === 0) {
+      if (!selectedCategory.value) {
         codeProduct.value = ''
         return
       }
@@ -478,6 +515,28 @@ function handleDelete() {
               class="flex flex-col gap-4 my-4"
               @submit.prevent
             >
+              <div class="flex flex-col md:flex-row gap-4">
+                <StandardFloatingInput
+                  id="inbound_id"
+                  type="text"
+                  name="inbound_id"
+                  placeholder="Inbound ID"
+                  label="Inbound ID"
+                  v-model="inboundId"
+                  class="w-full"
+                  :disabled="true"
+                />
+                <StandardFloatingInput
+                  id="transaction_date"
+                  type="text"
+                  name="transaction_date"
+                  placeholder="Transaction Date"
+                  label="Transaction Date"
+                  v-model="transactionDate"
+                  class="w-full"
+                  :disabled="true"
+                />
+              </div>
               <div class="flex flex-col md:flex-row gap-4 items-center w-full">
                 <div id="image_upload" class="w-full md:w-60 flex-shrink-0">
                   <!-- Placeholder when no image is selected -->
@@ -541,7 +600,6 @@ function handleDelete() {
                       option-value="category"
                       :required="true"
                       class="w-full"
-                      @select="handleCategorySelect"
                     />
                     <StandardFloatingInput
                       id="product_code"
@@ -552,6 +610,30 @@ function handleDelete() {
                       v-model="codeProduct"
                       class="w-full"
                       :disabled="true"
+                    />
+                  </div>
+                  <div class="flex flex-col md:flex-row gap-4">
+                    <AutoCompleteInput
+                      id="product_supplier"
+                      label="Select Supplier"
+                      placeholder="Type to search suppliers..."
+                      v-model="selectedSupplier"
+                      :options="suppliers"
+                      option-label="supplier_name"
+                      option-value="documentId"
+                      :required="true"
+                      class="w-full"
+                    />
+                    <AutoCompleteInput
+                      id="product_warehouse"
+                      label="Select Warehouse"
+                      placeholder="Type to search warehouses..."
+                      v-model="selectedWarehouse"
+                      :options="warehouses"
+                      option-label="warehouse_name"
+                      option-value="documentId"
+                      :required="true"
+                      class="w-full"
                     />
                   </div>
                   <div class="flex flex-col flex-wrap gap-4 w-full">
