@@ -27,6 +27,10 @@ defineProps({
     type: String,
     default: 'N/A',
   },
+  whatsappStatus: {
+    type: Boolean,
+    default: false,
+  }
 })
 
 const emit = defineEmits(['openDeleteModal', 'openEditModal'])
@@ -72,7 +76,7 @@ console.log()
         <div class="flex items-start">
           <i class="fa fa-phone-alt text-yellow-500 w-5 mt-1"></i>
           <div class="ml-3">
-            <h2 class="text-xs font-semibold text-gray-500">Contact - <i class="fa fa-whatsapp text-green-500"></i> Whatsapp Available</h2>
+            <h2 class="text-xs font-semibold text-gray-500"><i v-if="whatsappStatus" class="fa fa-whatsapp text-green-500 text-sm"></i> Contact</h2>
             <p class="text-sm text-gray-700">{{ contact }}</p>
           </div>
         </div>

@@ -88,6 +88,7 @@ async function postSuppliers() {
       supplier_address: newSupplier.value.address,
       pic_contact: newSupplier.value.contact,
       pic_supplier: newSupplier.value.supplier_pic,
+      with_whatsapp: newSupplier.value.whatsapp_status,
     }
 
     if (!data.supplier_name || !data.supplier_address || !data.pic_contact || !data.pic_supplier) {
@@ -198,6 +199,7 @@ async function editSupplier() {
         supplier_address: newSupplier.value.address,
         pic_contact: newSupplier.value.contact,
         pic_supplier: newSupplier.value.supplier_pic,
+        with_whatsapp: newSupplier.value.whatsapp_status,
       },
     })
 
@@ -377,7 +379,7 @@ const newSupplier = ref({
   address: '',
   contact: '',
   supplier_pic: '',
-  supplier_image: '',
+  whatsapp_status: false,
 })
 
 function openAddModal() {
@@ -394,7 +396,7 @@ function closeModal() {
     address: '',
     contact: '',
     supplier_pic: '',
-    supplier_image: '',
+    whatsapp_status: false,
   }
 
   imageUrl.value = ''
@@ -419,6 +421,7 @@ function openEditModal(id) {
     address: supplier.supplier_address,
     contact: supplier.pic_contact,
     supplier_pic: supplier.pic_supplier,
+    whatsapp_status: supplier.with_whatsapp,
   }
 
   imageUrl.value = supplier?.supplier_image?.url
@@ -581,6 +584,7 @@ onMounted(async () => {
             :picName="supplier.pic_supplier"
             :contact="supplier.pic_contact"
             :address="supplier.supplier_address"
+            :whatsapp-status="supplier.with_whatsapp"
             class="supplier-card-item"
             :class="{ highlighted: searchTerm }"
             @open-delete-modal="openDeleteModal"
@@ -693,13 +697,28 @@ onMounted(async () => {
           name="pic_name"
           v-model="newSupplier.supplier_pic"
         />
-        <StandardFloatingInput
-          label="PIC Contact"
-          type="number"
-          id="pic_contact"
-          name="pic_contact"
-          v-model="newSupplier.contact"
-        />
+        <div class="flex flex-col gap-2">
+          <StandardFloatingInput
+            class="w-full"
+            label="PIC Contact"
+            type="number"
+            id="pic_contact"
+            name="pic_contact"
+            v-model="newSupplier.contact"
+          />
+          <div class="flex gap-2 items-center">
+            <input
+              type="checkbox"
+              id="whatsapp_checkbox"
+              :checked="newSupplier.whatsapp_status"
+              class="w-3.5 h-3.5"
+            />
+            <label for="whatsapp_checkbox" class="flex items-center gap-2">
+              <p class="text-base text-xs">Is contact whatsapp integrated</p>
+              <i class="fa fa-whatsapp text-green-500"></i>
+            </label>
+          </div>
+        </div>
         <div class="flex justify-end gap-4 pt-4">
           <button
             type="button"
@@ -747,5 +766,33 @@ mark {
   background-color: #fef08a;
   padding: 2px 4px;
   border-radius: 3px;
+}
+
+#whatsapp_checkbox[type='checkbox'] {
+  accent-color: #4a5568;
+  cursor: pointer;
+  /* Change checkbox color and border color */
+  border: 2px solid #f2b418;
+  border-radius: 4px;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-color: #fff;
+  position: relative;
+}
+
+#whatsapp_checkbox[type='checkbox']:hover {
+  border-color: rgba(242, 150, 24, 1);
+}
+
+#whatsapp_checkbox[type='checkbox']:checked::after {
+  content: '\2714';
+  color: #f2b418;
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>
