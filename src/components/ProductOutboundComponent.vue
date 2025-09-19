@@ -228,10 +228,10 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
           <tr>
             <th
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-              @click="sortBy('product_code')"
+              @click="sortBy('out_id')"
             >
-              Product Code
-              <span v-if="sortKey === 'product_code'">
+              ID
+              <span v-if="sortKey === 'out_id'">
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
             </th>
@@ -275,7 +275,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
               @click="sortBy('shipping_time')"
             >
-              Shipping Time
+              Transaction Date
               <span v-if="sortKey === 'shipping_time'">
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
@@ -302,7 +302,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
             ]"
           >
             <td class="px-6 py-4 whitespace-nowrap">
-              <span v-html="highlightSearchTerm(product.product.product_code, searchTerm)"></span>
+              <span v-html="highlightSearchTerm(product.out_id, searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span v-html="highlightSearchTerm(product.product.product_name, searchTerm)"></span>

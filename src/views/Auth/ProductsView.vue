@@ -24,10 +24,17 @@ const deleteId = ref(null)
 const imageDelete = ref(null)
 const tab = ref('inbounds') // 'inbounds' or 'outbounds'
 
-// --- Image Upload State (Refactored) ---
+// --- MODIFIED: Image Upload State for Multiple Images ---
 const imageInput = ref(null) // Ref for the file input element
-const imageUrl = ref(null) // Ref for the image preview URL
-const selectedFile = ref(null) // Ref to store the selected file object
+const imageUrls = ref([]) // Ref for multiple image preview URLs (changed from imageUrl)
+const selectedFiles = ref([]) // Ref to store multiple selected file objects (changed from selectedFile)
+const activePreviewIndex = ref(0) // NEW: To track the main preview image
+
+// Image upload outbound
+const imageInputOutbound = ref(null) // Ref for the file input element
+const imageUrlsOutbound = ref([]) // Ref for multiple image preview URLs (changed from imageUrl)
+const selectedFilesOutbound = ref([]) // Ref to store multiple selected file objects (changed from selectedFile)
+const activePreviewIndexOutbound = ref(0) // NEW: To track the main preview image
 
 // --- Input State for Inbounds ---
 const selectedCategory = ref('')
@@ -49,6 +56,7 @@ const destinationOutbound = ref('')
 const notesOutbound = ref('')
 const outboundsData = ref([])
 const totalDataOnMountedOutbound = ref(outboundsData?.value.length) // Store the total data count on mounted for outbound
+const outboundId = ref('')
 
 // Retrieve categories and products from localStorage if available
 try {
@@ -127,7 +135,11 @@ const deleteProduct = async () => {
   })
   try {
     await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
-    await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`) // Assuming product images are stored separately
+    // Note: If a product has multiple images, you'll need a more robust way
+    // to delete all associated images. This currently only deletes one.
+    if (imageDelete.value) {
+      await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`)
+    }
     getProducts() // Refresh the product list after deletion
     show.value = false // Close the modal
     notif.resolve({
@@ -188,7 +200,7 @@ const getNextAvailableProductCode = (categoryName) => {
   )
 
   // 2. **INI PERBAIKANNYA**: Jika tidak ada produk yang ditemukan di kategori ini,
-  //    artinya ini adalah produk pertama. Langsung kembalikan nomor 1.
+  // artinya ini adalah produk pertama. Langsung kembalikan nomor 1.
   if (productsInCategory.length === 0) {
     return `${categoryName}_1`
   }
@@ -228,8 +240,6 @@ const postProduct = async () => {
       (cat) => cat.category === selectedCategory.value,
     )?.documentId
 
-    console.log('Category ID:', category_id)
-
     const data = {
       in_id: inboundId.value,
       product_category: category_id,
@@ -262,10 +272,13 @@ const postProduct = async () => {
       data,
     })
 
-    // Upload image if available
-    if (selectedFile.value) {
+    // --- MODIFIED: Upload multiple images if available ---
+    if (selectedFiles.value.length > 0) {
       const fd = new FormData()
-      fd.append('files', selectedFile.value)
+      // Append each file to the FormData object. Strapi handles this automatically.
+      for (const file of selectedFiles.value) {
+        fd.append('files', file)
+      }
 
       const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
         method: 'POST',
@@ -274,12 +287,14 @@ const postProduct = async () => {
 
       if (uploadRes.ok) {
         const uploadResult = await uploadRes.json()
-        const imageId = uploadResult[0].id
+        // Map the results to get an array of image IDs
+        const imageIds = uploadResult.map((image) => image.id)
 
-        // Update product with image ID
+        // Update product with the array of image IDs
+        // Ensure your 'product_image' field in Strapi is configured to allow multiple media.
         await axios.put(`${STRAPI_URL}/api/products/${productRes.data.data?.documentId}`, {
           data: {
-            product_image: imageId,
+            product_image: imageIds,
           },
         })
       }
@@ -292,6 +307,7 @@ const postProduct = async () => {
     descriptionProduct.value = ''
     priceProduct.value = ''
     quantityProduct.value = 1
+    inboundId.value = inboundIdGenerate()
     clearImageHandle() // Reset image uploader
 
     getProducts() // Refresh the product list after adding a new product
@@ -323,17 +339,13 @@ const posOutbounds = async () => {
       (prod) => prod.product_name === selectedProductOutbound.value.product_name,
     )?.documentId
 
-    console.log('Selected Product ID:', product_id)
-    console.log('selected product outbound value:', selectedProductOutbound.value)
-
     const data = {
       product: product_id,
       qty: quantityOutbound.value,
       destination: destinationOutbound.value,
       notes: notesOutbound.value,
+      out_id: outboundId.value,
     }
-
-    console.log('Data: ', data)
 
     if (!data.product || !data.qty || !data.destination) {
       notif.reject({
@@ -344,23 +356,64 @@ const posOutbounds = async () => {
       return
     }
 
-    await axios.post(`${STRAPI_URL}/api/outbound-products`, {
+    const productsRes = await axios.post(`${STRAPI_URL}/api/outbound-products`, {
       data,
     })
+    const newOutboundId = productsRes.data.data.documentId
 
-    await axios.put(`${STRAPI_URL}/api/products/${product_id}`, {
-      data: {
-        product_qty:
-          products.value.find((prod) => prod?.documentId === product_id)?.product_qty -
-          quantityOutbound.value,
-      },
-    })
+    const promises = []
+
+    promises.push(
+      axios.put(`${STRAPI_URL}/api/products/${product_id}`, {
+        data: {
+          product_qty:
+            products.value.find((prod) => prod?.documentId === product_id)?.product_qty -
+            quantityOutbound.value,
+        },
+      }),
+    )
+
+    // upload images
+    if (selectedFilesOutbound.value.length > 0) {
+      promises.push(
+        (async () => {
+          const fd = new FormData()
+          for (const file of selectedFilesOutbound.value) {
+            fd.append('files', file)
+          }
+          const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
+            method: 'POST',
+            body: fd,
+          })
+
+          if (uploadRes.ok) {
+            const uploadResult = await uploadRes.json()
+            const imageIds = uploadResult.map((image) => image.id)
+
+            // Link the uploaded images to the newly created outbound record
+            return axios.put(`${STRAPI_URL}/api/outbound-products/${newOutboundId}`, {
+              data: {
+                invoice: imageIds, // Assuming the field name in Strapi is 'invoice'
+              },
+            })
+          } else {
+            // Throw an error to make Promise.all fail if upload fails
+            throw new Error('Invoice image upload failed.')
+          }
+        })(),
+      )
+    }
+
+    // Wait for all promises to complete
+    await Promise.all(promises)
 
     // Reset form fields
     selectedProductOutbound.value = ''
     quantityOutbound.value = 1
     destinationOutbound.value = ''
     notesOutbound.value = ''
+    outboundId.value = outboundIdGenerate()
+    clearImageHandleOutbound() // Reset image uploader
 
     // Get outbounds
     getOutbounds()
@@ -381,25 +434,52 @@ const posOutbounds = async () => {
   }
 }
 
-// Watch for changes in products to update total data count
-onMounted(() => {
+function inboundIdGenerate() {
+  const date = now.getDate().toString().padStart(2, '0')
+  const month = (now.getMonth() + 1).toString().padStart(2, '0') // Months are zero-based
+  const year = now.getFullYear()
+  const dateString = `${year}${month}${date}`
+  const productsToday = products.value.filter((product) => {
+    const productDate = new Date(product.createdAt)
+    return (
+      productDate.getDate() === now.getDate() &&
+      productDate.getMonth() === now.getMonth() &&
+      productDate.getFullYear() === now.getFullYear()
+    )
+  })
+  const productCount = productsToday.length + 1
+  return `INB-${dateString}-${productCount}`
+}
+
+function outboundIdGenerate() {
+  const date = now.getDate().toString().padStart(2, '0')
+  const month = (now.getMonth() + 1).toString().padStart(2, '0') // Months are zero-based
+  const year = now.getFullYear()
+  const dateString = `${year}${month}${date}`
+  const outboundsToday = outboundsData.value.filter((outbound) => {
+    const outboundDate = new Date(outbound.createdAt)
+    return (
+      outboundDate.getDate() === now.getDate() &&
+      outboundDate.getMonth() === now.getMonth() &&
+      outboundDate.getFullYear() === now.getFullYear()
+    )
+  })
+  const outboundCount = outboundsToday.length + 1
+  return `OUT-${dateString}-${outboundCount}`
+}
+
+onMounted(async () => {
   try {
-    if (categories.value.length === 0) {
-      getCategories() // Fetch categories when the component is mounted
-    }
+    await Promise.all([
+      getCategories(),
+      getSuppliers(),
+      getWarehouses(),
+      getProducts(),
+      getOutbounds(),
+    ])
 
-    if (suppliers.value.length === 0) {
-      getSuppliers() // Fetch suppliers when the component is mounted
-    }
-
-    if (warehouses.value.length === 0) {
-      getWarehouses() // Fetch warehouses when the component is mounted
-    }
-
-    getProducts() // Fetch products when the component is mounted
-    getOutbounds()
-
-    inboundId.value = `INB-${now.getFullYear()}${now.getMonth() + 1}${now.getDate()}-${products.value.length + 1}`
+    inboundId.value = inboundIdGenerate()
+    outboundId.value = outboundIdGenerate()
 
     watchEffect(() => {
       if (!selectedCategory.value) {
@@ -413,25 +493,100 @@ onMounted(() => {
   }
 })
 
-// --- Image Upload Functions (Refactored) ---
+// --- MODIFIED: Image Upload Functions for Multiple Images ---
 function imageUploadHandleClick() {
   imageInput.value.click()
 }
 
+function imageUploadHandleClickOutbound() {
+  imageInputOutbound.value.click()
+}
+
+function setActivePreview(index) {
+  activePreviewIndex.value = index
+}
+
+function setActivePreviewOutbound(index) {
+  activePreviewIndexOutbound.value = index
+}
+
 function handleImageUpload(event) {
-  const file = event.target.files[0]
-  if (file) {
-    selectedFile.value = file
-    imageUrl.value = URL.createObjectURL(file)
+  const files = event.target.files
+  if (files) {
+    for (const file of files) {
+      selectedFiles.value.push(file)
+      imageUrls.value.push(URL.createObjectURL(file))
+    }
+    // Set the last uploaded image as the active one
+    activePreviewIndex.value = imageUrls.value.length - 1
+  }
+}
+
+function handleImageUploadOutbound(event) {
+  const files = event.target.files
+  if (files) {
+    for (const file of files) {
+      selectedFilesOutbound.value.push(file)
+      imageUrlsOutbound.value.push(URL.createObjectURL(file))
+    }
+    // Set the last uploaded image as the active one
+    activePreviewIndexOutbound.value = imageUrlsOutbound.value.length - 1
+  }
+}
+
+function removeImage(index) {
+  // Revoke the object URL to prevent memory leaks
+  URL.revokeObjectURL(imageUrls.value[index])
+
+  // Remove the image URL and the file from their respective arrays
+  imageUrls.value.splice(index, 1)
+  selectedFiles.value.splice(index, 1)
+
+  // Adjust active index if it's now out of bounds
+  if (activePreviewIndex.value >= imageUrls.value.length) {
+    activePreviewIndex.value = imageUrls.value.length - 1
+  }
+  if (imageUrls.value.length === 0) {
+    activePreviewIndex.value = 0
+  }
+}
+
+function removeImageOutbound(index) {
+  // Revoke the object URL to prevent memory leaks
+  URL.revokeObjectURL(imageUrlsOutbound.value[index])
+
+  // Remove the image URL and the file from their respective arrays
+  imageUrlsOutbound.value.splice(index, 1)
+  selectedFilesOutbound.value.splice(index, 1)
+
+  // Adjust active index if it's now out of bounds
+  if (activePreviewIndexOutbound.value >= imageUrlsOutbound.value.length) {
+    activePreviewIndexOutbound.value = imageUrlsOutbound.value.length - 1
   }
 }
 
 function clearImageHandle() {
-  imageUrl.value = null
-  selectedFile.value = null
+  // Revoke all object URLs before clearing the array
+  imageUrls.value.forEach((url) => URL.revokeObjectURL(url))
+
+  imageUrls.value = []
+  selectedFiles.value = []
   if (imageInput.value) {
     imageInput.value.value = ''
   }
+  activePreviewIndex.value = 0
+}
+
+function clearImageHandleOutbound() {
+  // Revoke all object URLs before clearing the array
+  imageUrlsOutbound.value.forEach((url) => URL.revokeObjectURL(url))
+
+  imageUrlsOutbound.value = []
+  selectedFilesOutbound.value = []
+  if (imageInputOutbound.value) {
+    imageInputOutbound.value.value = ''
+  }
+  activePreviewIndexOutbound.value = 0
 }
 
 function handleDelete() {
@@ -446,7 +601,6 @@ function handleDelete() {
 <template>
   <div class="px-4">
     <div class="mt-4">
-      <!-- Add Product Form -->
       <div class="bg-white rounded-xl mb-4 shadow">
         <div
           class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
@@ -504,7 +658,6 @@ function handleDelete() {
           </button>
         </div>
 
-        <!-- Product Form -->
         <div>
           <div v-if="tab === 'inbounds'" class="px-6 py-2">
             <form
@@ -537,57 +690,86 @@ function handleDelete() {
                   :disabled="true"
                 />
               </div>
-              <div class="flex flex-col md:flex-row gap-4 items-center w-full">
-                <div id="image_upload" class="w-full md:w-60 flex-shrink-0">
-                  <!-- Placeholder when no image is selected -->
+              <div class="flex flex-col md:flex-row gap-4 w-full">
+                <!-- ==================== MODIFIED: Image Upload Section ==================== -->
+                <div class="w-full md:w-80 flex-shrink-0 pt-4">
                   <div
-                    v-if="!imageUrl"
+                    v-if="imageUrls.length === 0"
                     @click="imageUploadHandleClick"
-                    class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+                    class="flex justify-center items-center w-full h-40 px-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
                   >
                     <div class="space-y-1 text-center">
                       <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
-                      <p class="text-sm text-gray-600">Click to upload image</p>
+                      <p class="text-sm text-gray-600">Click to upload images</p>
                     </div>
                   </div>
 
-                  <!-- Image Preview when an image is selected -->
-                  <div v-else class="relative w-full h-40">
-                    <img
-                      :src="imageUrl"
-                      alt="Image Preview"
-                      class="w-full h-full object-cover rounded-md shadow-md"
-                    />
-                    <button
-                      @click="clearImageHandle"
-                      type="button"
-                      class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
-                      title="Remove image"
-                    >
-                      <svg
-                        class="h-5 w-5"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                  <!-- Image Gallery Preview -->
+                  <div v-else class="w-full">
+                    <!-- Main Preview Image -->
+                    <div class="relative w-full h-40 bg-gray-200 rounded-lg overflow-hidden mb-2">
+                      <img
+                        v-if="imageUrls.length > 0 && imageUrls[activePreviewIndex]"
+                        :src="imageUrls[activePreviewIndex]"
+                        alt="Active Preview"
+                        class="w-full h-full object-cover"
+                      />
+                      <div v-else class="w-full h-full flex items-center justify-center">
+                        <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+                      </div>
+                    </div>
+
+                    <!-- Thumbnails -->
+                    <div class="flex items-center gap-2">
+                      <div class="flex-1 flex gap-2 overflow-x-auto pb-2">
+                        <div
+                          v-for="(url, index) in imageUrls"
+                          :key="url"
+                          class="relative w-16 h-16 flex-shrink-0 group"
+                        >
+                          <img
+                            :src="url"
+                            alt="Image Thumbnail"
+                            @click="setActivePreview(index)"
+                            class="w-full h-full object-cover rounded-md cursor-pointer border-2 transition-colors"
+                            :class="
+                              activePreviewIndex === index ? 'border-blue-500' : 'border-gray-300'
+                            "
+                          />
+                          <button
+                            @click="removeImage(index)"
+                            type="button"
+                            class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Remove image"
+                          >
+                            <i class="fa-solid fa-xmark"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <!-- Add More Button -->
+                      <button
+                        @click="imageUploadHandleClick"
+                        type="button"
+                        class="flex-shrink-0 flex justify-center items-center w-16 h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-sub transition-colors"
                       >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <div class="text-center text-gray-500">
+                          <i class="fa-solid fa-plus text-xl"></i>
+                        </div>
+                      </button>
+                    </div>
                   </div>
+
                   <input
                     type="file"
                     class="hidden"
                     accept="image/*"
                     @change="handleImageUpload($event)"
                     ref="imageInput"
+                    multiple
                   />
                 </div>
+                <!-- ==================== End of Modified Section ==================== -->
+
                 <div class="flex flex-col gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
                     <AutoCompleteInput
@@ -666,7 +848,7 @@ function handleDelete() {
                         label="Price"
                         v-model="priceProduct"
                         class="w-full"
-                        @handlePriceInput="handlePriceInput"
+                        @input="handlePriceInput"
                       />
                       <StandardFloatingInput
                         id="product_qty"
@@ -695,48 +877,156 @@ function handleDelete() {
               <div class="flex flex-col md:flex-row gap-4 items-center w-full">
                 <div class="flex flex-col gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
-                    <FloatingInputWithImage
-                      id="outbound_product"
-                      label="Select Product"
-                      placeholder="Type to search products..."
-                      v-model="selectedProductOutbound"
-                      :options="products"
-                      option-label="product_name"
-                      option-value="Product_code"
-                      image-src=""
+                    <StandardFloatingInput
+                      id="outbound_id"
+                      label="Outbound ID"
+                      name="outbound_id"
+                      placeholder="Outbound ID"
+                      v-model="outboundId"
                       :required="true"
                       class="w-full"
-                      @select="handleCategorySelect"
+                      :disabled="true"
                     />
                     <StandardFloatingInput
-                      id="outbound_quantity"
-                      type="number"
-                      name="outbound_quantity"
-                      placeholder="Quantity"
-                      label="Quantity"
-                      v-model="quantityOutbound"
-                      class="w-full"
+                      id="transaction_outbound"
+                      type="text"
+                      name="transaction_outbound"
+                      placeholder="Transaction Date"
+                      label="Transaction Date"
+                      v-model="transactionDate"
+                      class="w-full text-gray-800"
+                      :disabled="true"
                     />
                   </div>
-                  <div class="flex flex-col md:flex-row gap-4">
-                    <StandardFloatingInput
-                      id="outbound_destination"
-                      type="text"
-                      name="outbound_destination"
-                      placeholder="Customer"
-                      label="Customer"
-                      v-model="destinationOutbound"
-                      class="w-full"
-                    />
-                    <StandardFloatingInput
-                      id="outbound_notes"
-                      type="text"
-                      name="outbound_notes"
-                      placeholder="Notes (optional)"
-                      label="Notes (optional)"
-                      v-model="notesOutbound"
-                      class="w-full"
-                    />
+                  <div class="flex flex-row gap-4 w-full items-center">
+                    <div class="w-full md:w-80 flex-shrink-0 pt-4">
+                      <div
+                        v-if="imageUrlsOutbound.length === 0"
+                        @click="imageUploadHandleClickOutbound"
+                        class="flex justify-center items-center w-full h-40 px-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+                      >
+                        <div class="space-y-1 text-center">
+                          <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+                          <p class="text-sm text-gray-600">Click to upload images</p>
+                        </div>
+                      </div>
+
+                      <!-- Image Gallery Preview -->
+                      <div v-else class="w-full">
+                        <!-- Main Preview Image -->
+                        <div
+                          class="relative w-full h-40 bg-gray-200 rounded-lg overflow-hidden mb-2"
+                        >
+                          <img
+                            v-if="
+                              imageUrlsOutbound.length > 0 &&
+                              imageUrlsOutbound[activePreviewIndexOutbound]
+                            "
+                            :src="imageUrlsOutbound[activePreviewIndexOutbound]"
+                            alt="Active Preview"
+                            class="w-full h-full object-cover"
+                          />
+                          <div v-else class="w-full h-full flex items-center justify-center">
+                            <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+                          </div>
+                        </div>
+
+                        <!-- Thumbnails -->
+                        <div class="flex items-center gap-2">
+                          <div class="flex-1 flex gap-2 overflow-x-auto pb-2">
+                            <div
+                              v-for="(url, index) in imageUrlsOutbound"
+                              :key="url"
+                              class="relative w-16 h-16 flex-shrink-0 group"
+                            >
+                              <img
+                                :src="url"
+                                alt="Image Thumbnail"
+                                @click="setActivePreviewOutbound(index)"
+                                class="w-full h-full object-cover rounded-md cursor-pointer border-2 transition-colors"
+                                :class="
+                                  activePreviewIndexOutbound === index
+                                    ? 'border-blue-500'
+                                    : 'border-gray-300'
+                                "
+                              />
+                              <button
+                                @click="removeImageOutbound(index)"
+                                type="button"
+                                class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Remove image"
+                              >
+                                <i class="fa-solid fa-xmark"></i>
+                              </button>
+                            </div>
+                          </div>
+                          <!-- Add More Button -->
+                          <button
+                            @click="imageUploadHandleClickOutbound"
+                            type="button"
+                            class="flex-shrink-0 flex justify-center items-center w-16 h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-sub transition-colors"
+                          >
+                            <div class="text-center text-gray-500">
+                              <i class="fa-solid fa-plus text-xl"></i>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="file"
+                        class="hidden"
+                        accept="image/*"
+                        @change="handleImageUploadOutbound($event)"
+                        ref="imageInputOutbound"
+                        multiple
+                      />
+                    </div>
+                    <div class="flex flex-col gap-4 w-full">
+                      <div class="flex flex-col md:flex-row gap-4">
+                        <FloatingInputWithImage
+                          id="outbound_product"
+                          label="Select Product"
+                          placeholder="Type to search products..."
+                          v-model="selectedProductOutbound"
+                          :options="products"
+                          option-label="product_name"
+                          option-value="Product_code"
+                          image-src=""
+                          :required="true"
+                          class="w-full"
+                        />
+                        <StandardFloatingInput
+                          id="outbound_quantity"
+                          type="number"
+                          name="outbound_quantity"
+                          placeholder="Quantity"
+                          label="Quantity"
+                          v-model="quantityOutbound"
+                          class="w-full"
+                        />
+                      </div>
+                      <div class="flex flex-col md:flex-row gap-4">
+                        <StandardFloatingInput
+                          id="outbound_destination"
+                          type="text"
+                          name="outbound_destination"
+                          placeholder="Customer"
+                          label="Customer"
+                          v-model="destinationOutbound"
+                          class="w-full"
+                        />
+                        <StandardFloatingInput
+                          id="outbound_notes"
+                          type="text"
+                          name="outbound_notes"
+                          placeholder="Notes (optional)"
+                          label="Notes (optional)"
+                          v-model="notesOutbound"
+                          class="w-full"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

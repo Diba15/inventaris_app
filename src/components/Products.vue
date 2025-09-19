@@ -228,10 +228,10 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
           <tr>
             <th
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-              @click="sortBy('product_code')"
+              @click="sortBy('in_id')"
             >
-              Product Code
-              <span v-if="sortKey === 'product_code'">
+              ID
+              <span v-if="sortKey === 'in_id'">
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
             </th>
@@ -293,7 +293,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
             ]"
           >
             <td class="px-6 py-4 whitespace-nowrap">
-              <span v-html="highlightSearchTerm(product.product_code, searchTerm)"></span>
+              <span v-html="highlightSearchTerm(product.in_id, searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span v-html="highlightSearchTerm(product.product_name, searchTerm)"></span>
