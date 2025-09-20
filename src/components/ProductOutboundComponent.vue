@@ -311,13 +311,16 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
               <span v-html="highlightSearchTerm(product.destination, searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-semibold">
-              <span
-                v-html="highlightSearchTerm(product.qty.toString() || '', searchTerm)"
-              ></span>
+              <span v-html="highlightSearchTerm(product.qty.toString() || '', searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-green-600 font-semibold">
               Rp.<span
-                v-html="highlightSearchTerm((product.product.product_price * product.qty)?.toString() || '', searchTerm)"
+                v-html="
+                  highlightSearchTerm(
+                    (product.product.product_price * product.qty)?.toString() || '',
+                    searchTerm,
+                  )
+                "
               ></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-gray-500">
@@ -330,13 +333,11 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
               }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-blue-600 font-semibold">
-              <span
-                v-html="highlightSearchTerm(product.notes.toString() || '', searchTerm)"
-              ></span>
+              <span v-html="highlightSearchTerm(product.notes.toString() || '', searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap flex gap-2">
               <RouterLink
-                :to="{ name: 'edit-product', params: { id: product.id } }"
+                :to="{ name: 'outbound-details', params: { id: product.documentId } }"
                 class="text-blue-500 hover:text-blue-700 text-xl"
               >
                 <button>

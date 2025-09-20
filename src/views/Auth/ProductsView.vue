@@ -21,7 +21,6 @@ const show = ref(false)
 const modalType = ref('warning')
 const totalDataOnMounted = ref(0)
 const deleteId = ref(null)
-const imageDelete = ref(null)
 const tab = ref('inbounds') // 'inbounds' or 'outbounds'
 
 // --- MODIFIED: Image Upload State for Multiple Images ---
@@ -76,12 +75,11 @@ try {
 }
 
 // For Products Component modal
-function openDeleteModal(id, imageId) {
+function openDeleteModal(id) {
   message.value = `Are you sure you want to delete?`
   show.value = true
   modalType.value = 'delete'
   deleteId.value = id
-  imageDelete.value = imageId // Store the image ID for deletion
 }
 
 const closeDeleteModal = () => {
@@ -134,13 +132,25 @@ const deleteProduct = async () => {
     duration: 0,
   })
   try {
-    await axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`)
-    // Note: If a product has multiple images, you'll need a more robust way
-    // to delete all associated images. This currently only deletes one.
-    if (imageDelete.value) {
-      await axios.delete(`${STRAPI_URL}/api/upload/files/${imageDelete.value}`)
+    const productToDelete = products.value.find((p) => p.documentId === deleteId.value)
+    if (!productToDelete) {
+      throw new Error('Product not found.')
     }
-    getProducts() // Refresh the product list after deletion
+
+    const deletePromises = []
+
+    deletePromises.push(axios.delete(`${STRAPI_URL}/api/products/${deleteId.value}`))
+
+    const images = productToDelete.product_image
+    if (images && images.length > 0) {
+      images.forEach((image) => {
+        deletePromises.push(axios.delete(`${STRAPI_URL}/api/upload/files/${image.id}`))
+      })
+    }
+
+    await Promise.all(deletePromises)
+
+    await getProducts() // Refresh the product list after deletion
     show.value = false // Close the modal
     notif.resolve({
       type: 'success',
@@ -149,7 +159,6 @@ const deleteProduct = async () => {
     })
 
     deleteId.value = null
-    imageDelete.value = null
   } catch (error) {
     console.error('Error deleting product:', error)
     notif.reject({
@@ -167,8 +176,25 @@ const deleteOutbound = async () => {
     duration: 0,
   })
   try {
-    await axios.delete(`${STRAPI_URL}/api/outbound-products/${deleteId.value}`)
-    getOutbounds()
+    const outboundToDelete = outboundsData.value.find((o) => o.documentId === deleteId.value)
+    if (!outboundToDelete) {
+      throw new Error('Outbound not found.')
+    }
+
+    const deletePromises = []
+
+    deletePromises.push(axios.delete(`${STRAPI_URL}/api/outbound-products/${deleteId.value}`))
+
+    const images = outboundToDelete.invoice
+    if (images && images.length > 0) {
+      images.forEach((image) => {
+        deletePromises.push(axios.delete(`${STRAPI_URL}/api/upload/files/${image.id}`))
+      })
+    }
+
+    await Promise.all(deletePromises)
+
+    await getOutbounds()
     show.value = false // Close the modal
     notif.resolve({
       type: 'success',
@@ -335,12 +361,12 @@ const posOutbounds = async () => {
     duration: 0,
   })
   try {
-    const product_id = products.value.find(
+    const product = products.value.find(
       (prod) => prod.product_name === selectedProductOutbound.value.product_name,
-    )?.documentId
+    )
 
     const data = {
-      product: product_id,
+      product: product.documentId,
       qty: quantityOutbound.value,
       destination: destinationOutbound.value,
       notes: notesOutbound.value,
@@ -356,19 +382,27 @@ const posOutbounds = async () => {
       return
     }
 
+    if (data.qty > product.product_qty) {
+      notif.reject({
+        type: 'warning',
+        message: 'Quantity exceeds available stock',
+        duration: 3000,
+      })
+      return
+    }
+
     const productsRes = await axios.post(`${STRAPI_URL}/api/outbound-products`, {
       data,
     })
+
     const newOutboundId = productsRes.data.data.documentId
 
     const promises = []
 
     promises.push(
-      axios.put(`${STRAPI_URL}/api/products/${product_id}`, {
+      axios.put(`${STRAPI_URL}/api/products/${product?.documentId}`, {
         data: {
-          product_qty:
-            products.value.find((prod) => prod?.documentId === product_id)?.product_qty -
-            quantityOutbound.value,
+          product_qty: product.product_qty - quantityOutbound.value,
         },
       }),
     )
@@ -417,6 +451,7 @@ const posOutbounds = async () => {
 
     // Get outbounds
     getOutbounds()
+    getProducts() // Refresh products list to get updated quantity
 
     notif.resolve({
       type: 'success',
@@ -467,31 +502,6 @@ function outboundIdGenerate() {
   const outboundCount = outboundsToday.length + 1
   return `OUT-${dateString}-${outboundCount}`
 }
-
-onMounted(async () => {
-  try {
-    await Promise.all([
-      getCategories(),
-      getSuppliers(),
-      getWarehouses(),
-      getProducts(),
-      getOutbounds(),
-    ])
-
-    inboundId.value = inboundIdGenerate()
-    outboundId.value = outboundIdGenerate()
-
-    watchEffect(() => {
-      if (!selectedCategory.value) {
-        codeProduct.value = ''
-        return
-      }
-      codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
-    })
-  } catch (error) {
-    console.error('Error fetching initial data:', error)
-  }
-})
 
 // --- MODIFIED: Image Upload Functions for Multiple Images ---
 function imageUploadHandleClick() {
@@ -596,11 +606,38 @@ function handleDelete() {
     deleteOutbound()
   }
 }
+
+onMounted(async () => {
+  try {
+    await Promise.all([
+      getCategories(),
+      getSuppliers(),
+      getWarehouses(),
+      getProducts(),
+      getOutbounds(),
+    ])
+
+    inboundId.value = inboundIdGenerate()
+    outboundId.value = outboundIdGenerate()
+
+    watchEffect(() => {
+      if (!selectedCategory.value) {
+        codeProduct.value = ''
+        return
+      }
+      codeProduct.value = getNextAvailableProductCode(selectedCategory.value)
+    })
+  } catch (error) {
+    console.error('Error fetching initial data:', error)
+  }
+})
 </script>
 
 <template>
   <div class="px-4">
     <div class="mt-4">
+
+      <!-- Form Section -->
       <div class="bg-white rounded-xl mb-4 shadow">
         <div
           class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
@@ -691,12 +728,11 @@ function handleDelete() {
                 />
               </div>
               <div class="flex flex-col md:flex-row gap-4 w-full">
-                <!-- ==================== MODIFIED: Image Upload Section ==================== -->
-                <div class="w-full md:w-80 flex-shrink-0 pt-4">
+                <div class="w-full md:w-80 flex-shrink-0">
                   <div
                     v-if="imageUrls.length === 0"
                     @click="imageUploadHandleClick"
-                    class="flex justify-center items-center w-full h-40 px-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+                    class="flex justify-center items-center w-full h-full px-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
                   >
                     <div class="space-y-1 text-center">
                       <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
@@ -746,11 +782,10 @@ function handleDelete() {
                           </button>
                         </div>
                       </div>
-                      <!-- Add More Button -->
                       <button
                         @click="imageUploadHandleClick"
                         type="button"
-                        class="flex-shrink-0 flex justify-center items-center w-16 h-16 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-sub transition-colors"
+                        class="flex-shrink-0 flex justify-center items-center w-12 h-12 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-sub transition-colors"
                       >
                         <div class="text-center text-gray-500">
                           <i class="fa-solid fa-plus text-xl"></i>
@@ -768,7 +803,6 @@ function handleDelete() {
                     multiple
                   />
                 </div>
-                <!-- ==================== End of Modified Section ==================== -->
 
                 <div class="flex flex-col gap-4 w-full">
                   <div class="flex flex-col md:flex-row gap-4">
@@ -898,8 +932,8 @@ function handleDelete() {
                       :disabled="true"
                     />
                   </div>
-                  <div class="flex flex-row gap-4 w-full items-center">
-                    <div class="w-full md:w-80 flex-shrink-0 pt-4">
+                  <div class="flex flex-col md:flex-row gap-4 w-full items-center">
+                    <div class="w-full md:w-80 flex-shrink-0">
                       <div
                         v-if="imageUrlsOutbound.length === 0"
                         @click="imageUploadHandleClickOutbound"
@@ -983,17 +1017,26 @@ function handleDelete() {
                       />
                     </div>
                     <div class="flex flex-col gap-4 w-full">
+                      <FloatingInputWithImage
+                        id="outbound_product"
+                        label="Select Product"
+                        placeholder="Type to search products..."
+                        v-model="selectedProductOutbound"
+                        :options="products"
+                        option-label="product_name"
+                        option-value="Product_code"
+                        image-src=""
+                        :required="true"
+                        class="w-full"
+                      />
                       <div class="flex flex-col md:flex-row gap-4">
-                        <FloatingInputWithImage
-                          id="outbound_product"
-                          label="Select Product"
-                          placeholder="Type to search products..."
-                          v-model="selectedProductOutbound"
-                          :options="products"
-                          option-label="product_name"
-                          option-value="Product_code"
-                          image-src=""
-                          :required="true"
+                        <StandardFloatingInput
+                          id="outbound_destination"
+                          type="text"
+                          name="outbound_destination"
+                          placeholder="Customer"
+                          label="Customer"
+                          v-model="destinationOutbound"
                           class="w-full"
                         />
                         <StandardFloatingInput
@@ -1007,15 +1050,6 @@ function handleDelete() {
                         />
                       </div>
                       <div class="flex flex-col md:flex-row gap-4">
-                        <StandardFloatingInput
-                          id="outbound_destination"
-                          type="text"
-                          name="outbound_destination"
-                          placeholder="Customer"
-                          label="Customer"
-                          v-model="destinationOutbound"
-                          class="w-full"
-                        />
                         <StandardFloatingInput
                           id="outbound_notes"
                           type="text"
@@ -1035,6 +1069,7 @@ function handleDelete() {
         </div>
       </div>
 
+      <!-- Inbounds Table -->
       <products_component
         v-if="tab === 'inbounds'"
         @deleteProduct="deleteProduct"
@@ -1044,6 +1079,7 @@ function handleDelete() {
         :totalDataOnMounted="totalDataOnMounted"
       />
 
+      <!-- Outbounds Table -->
       <ProductOutboundComponent
         v-if="tab === 'outbounds'"
         @deleteProduct="deleteOutbound"
@@ -1053,6 +1089,7 @@ function handleDelete() {
         :totalDataOnMounted="totalDataOnMountedOutbound"
       />
 
+      <!-- Pop up for delete product -->
       <alert-component
         :message="message"
         :show="show"
@@ -1060,11 +1097,14 @@ function handleDelete() {
         :type="modalType"
         @confirm="handleDelete"
       />
+
+      <!-- Notification Component -->
       <Notivue v-slot="item">
         <Notification :item="item" :theme="pastelTheme">
           <NotificationProgress :item="item" />
         </Notification>
       </Notivue>
+
     </div>
   </div>
 </template>

@@ -1,33 +1,35 @@
 <script setup>
 const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
 
-import { defineOptions } from 'vue'
+import { defineOptions, onBeforeUnmount } from 'vue'
 defineOptions({
-  name: 'product_details',
+  name: 'outbound_details',
 })
 
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
 import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const route = useRoute()
-const product = ref(null)
+const router = useRouter()
+const outbound = ref(null)
+const originalQty = ref(0) // To store the initial quantity
 
-// --- MODIFIED: State for Multiple Image Handling ---
+// --- State for Multiple Image Handling ---
 const imageInput = ref(null) // Ref for the file input element
 const previewUrls = ref([]) // Array for new image preview URLs
 const selectedFiles = ref([]) // Array for new selected file objects
 
-// --- NEW: State for Gallery Popup ---
+// --- State for Gallery Popup ---
 const isGalleryOpen = ref(false)
 const activeImageIndex = ref(0)
 
-// --- MODIFIED: Computed property to combine existing and new images for the gallery ---
+// Computed property to combine existing and new images for the gallery
 const galleryImages = computed(() => {
   const existingImages =
-    product.value?.product_image?.map((img) => ({
+    outbound.value?.invoice?.map((img) => ({
       ...img,
       type: 'existing', // Mark as an existing image
       url: img.url,
@@ -42,114 +44,152 @@ const galleryImages = computed(() => {
   return [...existingImages, ...newImages]
 })
 
-const getProductDetails = async () => {
+const getOutboundDetails = async () => {
   const id = route.params.id
   try {
-    const response = await axios.get(`${STRAPI_URL}/api/products/${id}?populate=*`)
-    // Ensure product_image is always an array
-    if (response.data.data.product_image && !Array.isArray(response.data.data.product_image)) {
-      response.data.data.product_image = [response.data.data.product_image]
-    } else if (!response.data.data.product_image) {
-      response.data.data.product_image = []
+    const response = await axios.get(`${STRAPI_URL}/api/outbound-products/${id}?populate=*`)
+    // Ensure invoice is always an array
+    if (response.data.data.invoice && !Array.isArray(response.data.data.invoice)) {
+      response.data.data.invoice = [response.data.data.invoice]
+    } else if (!response.data.data.invoice) {
+      response.data.data.invoice = []
     }
-    product.value = response.data.data
+    outbound.value = response.data.data
+    originalQty.value = outbound.value.qty // Store original quantity
   } catch (error) {
-    console.error('Failed to fetch product details:', error)
-    push.error('Failed to load product details.')
+    console.error('Failed to fetch outbound details:', error)
+    push.error('Failed to load outbound details.')
   }
 }
 
 onMounted(() => {
-  getProductDetails()
+  getOutboundDetails()
   // Add keyboard event listener for gallery navigation
   window.addEventListener('keydown', handleKeydown)
 })
 
-// --- MODIFIED: Logic for updating product with multiple images ---
-const updateProduct = async () => {
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+// Logic for updating outbound record with multiple images
+const updateOutbound = async () => {
   const id = route.params.id
-  const price = product.value.product_price.toString()
 
   const updatedData = {
-    product_name: product.value.product_name,
-    product_description: product.value.product_description,
-    product_price: Number(price.replace(/[^0-9]/g, '')),
-    product_qty: product.value.product_qty,
+    destination: outbound.value.destination,
+    notes: outbound.value.notes,
+    qty: Number(outbound.value.qty),
   }
 
+  // --- Quantity validation ---
+  const qtyDifference = updatedData.qty - originalQty.value
+  const availableStock = outbound.value.product.product_qty
+
+  if (qtyDifference > availableStock) {
+    push.error({
+      title: 'Stok Tidak Mencukupi',
+      message: `Anda hanya bisa menambah ${availableStock} unit lagi.`,
+    })
+    return
+  }
+  // --- End of validation ---
+
   const notif = push.promise({
-    message: 'Updating product...',
+    message: 'Updating outbound record...',
     duration: 0,
   })
 
   try {
-    // 1. Handle image uploads first if there are new files
+    const promises = []
     let newImageIds = []
+
+    // 1. Handle image uploads first if there are new files
     if (selectedFiles.value.length > 0) {
       const formData = new FormData()
       selectedFiles.value.forEach((file) => formData.append('files', file))
-
       const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
       newImageIds = imageResponse.data.map((img) => img.id)
     }
 
     // 2. Combine existing image IDs with new ones
-    const existingImageIds = product.value.product_image.map((img) => img.id)
+    const existingImageIds = outbound.value.invoice.map((img) => img.id)
     const allImageIds = [...existingImageIds, ...newImageIds]
 
-    // 3. Update product with text fields and new image relations
-    await axios.put(`${STRAPI_URL}/api/products/${id}`, {
-      data: {
-        ...updatedData,
-        product_image: allImageIds, // Send the combined array of IDs
-      },
-    })
+    // 3. Add promise to update outbound record with text fields and new image relations
+    promises.push(
+      axios.put(`${STRAPI_URL}/api/outbound-products/${id}`, {
+        data: {
+          ...updatedData,
+          invoice: allImageIds, // Send the combined array of IDs
+        },
+      }),
+    )
+
+    // 4. If quantity changed, add promise to update product stock
+    if (qtyDifference !== 0) {
+      promises.push(
+        axios.put(`${STRAPI_URL}/api/products/${outbound.value.product.documentId}`, {
+          data: {
+            product_qty: availableStock - qtyDifference,
+          },
+        }),
+      )
+    }
+
+    // 5. Execute all updates
+    await Promise.all(promises)
 
     clearImageChange() // Clear the preview
-    await getProductDetails() // Refresh the product details after update
+    await getOutboundDetails() // Refresh the details after update
 
     notif.resolve({
       type: 'success',
-      message: 'Product updated successfully!',
+      message: 'Outbound record updated successfully!',
     })
+
+    // Navigate back after a short delay
+    setTimeout(() => {
+      router.push({ name: 'Products' })
+    }, 1500)
   } catch (error) {
-    console.error('Error updating product:', error)
+    console.error('Error updating outbound:', error)
     notif.reject({
       type: 'error',
-      message: 'Failed to update product.',
+      message: 'Failed to update outbound record.',
     })
   }
 }
 
-// --- NEW: Function to delete an existing image ---
-async function deleteImage(imageIdToDelete, indexInProductArray) {
-  if (!confirm('Are you sure you want to delete this image?')) return
+// Function to delete an existing image
+async function deleteImage(imageIdToDelete, indexInInvoiceArray) {
+  if (!confirm('Are you sure you want to delete this invoice image?')) return
 
-  const productId = route.params.id
+  const outboundId = route.params.id
   try {
-    // 1. Unlink from product and link the rest
-    const remainingImageIds = product.value.product_image
+    // 1. Unlink from outbound record
+    const remainingImageIds = outbound.value.invoice
       .filter((img) => img.id !== imageIdToDelete)
       .map((img) => img.id)
 
-    await axios.put(`${STRAPI_URL}/api/products/${productId}`, {
-      data: { product_image: remainingImageIds },
+    await axios.put(`${STRAPI_URL}/api/outbound-products/${outboundId}`, {
+      data: { invoice: remainingImageIds },
     })
 
     // 2. Delete the file from Strapi's media library
     await axios.delete(`${STRAPI_URL}/api/upload/files/${imageIdToDelete}`)
 
     // 3. Update local state for immediate UI feedback
-    product.value.product_image.splice(indexInProductArray, 1)
+    outbound.value.invoice.splice(indexInInvoiceArray, 1)
 
-    push.success('Image deleted successfully!')
+    push.success('Invoice image deleted successfully!')
   } catch (error) {
     console.error('Failed to delete image:', error)
     push.error('Failed to delete image.')
   }
 }
 
-// --- Image Handling Functions (Modified for multiple files) ---
+// --- Image Handling Functions ---
 function handleChangeImageClick() {
   imageInput.value.click()
 }
@@ -164,10 +204,9 @@ function handleFileChange(event) {
   }
 }
 
-// NEW: Remove a newly added preview image before uploading
 function removePreview(indexToRemove) {
   const urlToRemove = previewUrls.value[indexToRemove]
-  URL.revokeObjectURL(urlToRemove) // Clean up memory
+  URL.revokeObjectURL(urlToRemove)
 
   previewUrls.value.splice(indexToRemove, 1)
   selectedFiles.value.splice(indexToRemove, 1)
@@ -182,15 +221,7 @@ function clearImageChange() {
   }
 }
 
-function handlePriceInput(event) {
-  const input = event.target.value
-  const numericValue = input.replace(/[^0-9]/g, '')
-  product.value.product_price = numericValue
-    ? numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-    : ''
-}
-
-// --- NEW: Gallery Functions ---
+// --- Gallery Functions ---
 function openGallery(index) {
   activeImageIndex.value = index
   isGalleryOpen.value = true
@@ -219,15 +250,17 @@ function handleKeydown(e) {
 
 <template>
   <main>
-    <div v-if="product" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <form @submit.prevent="updateProduct">
+    <div v-if="outbound" class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <form @submit.prevent="updateOutbound">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div
             class="p-6 bg-base text-white flex flex-col md:flex-row justify-between items-center gap-4"
           >
             <div>
-              <h1 class="text-2xl font-bold">Edit Product Details</h1>
-              <p class="text-white/80 mt-1">Update information for {{ product.product_name }}</p>
+              <h1 class="text-2xl font-bold">Edit Outbound Details</h1>
+              <p class="text-white/80 mt-1">
+                Update transaction for {{ outbound.product?.product_name || '...' }}
+              </p>
             </div>
             <button
               type="submit"
@@ -247,7 +280,7 @@ function handleKeydown(e) {
                 <img
                   v-if="galleryImages.length > 0"
                   :src="galleryImages[0].url"
-                  alt="Product Image"
+                  alt="Invoice Image"
                   class="w-full h-full object-cover"
                 />
                 <div
@@ -257,7 +290,7 @@ function handleKeydown(e) {
                 >
                   <i class="fa-solid fa-magnifying-glass-plus text-white text-4xl"></i>
                 </div>
-                <i v-else class="fa-solid fa-image text-6xl text-gray-300"></i>
+                <i v-else class="fa-solid fa-receipt text-6xl text-gray-300"></i>
               </div>
 
               <div class="grid grid-cols-4 gap-3">
@@ -276,7 +309,7 @@ function handleKeydown(e) {
                     @click="
                       image.type === 'existing'
                         ? deleteImage(image.id, index)
-                        : removePreview(index - product.product_image.length)
+                        : removePreview(index - outbound.invoice.length)
                     "
                     class="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100"
                     :title="image.type === 'existing' ? 'Delete permanently' : 'Remove preview'"
@@ -292,7 +325,7 @@ function handleKeydown(e) {
                 class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold py-3 px-5 rounded-lg shadow-sm transition duration-200 w-full flex items-center justify-center gap-2"
               >
                 <i class="fa-solid fa-plus"></i>
-                <span>Add Image</span>
+                <span>Add Invoice</span>
               </button>
 
               <input
@@ -317,7 +350,8 @@ function handleKeydown(e) {
                     name="product_name"
                     placeholder="Product Name"
                     label="Product Name"
-                    v-model="product.product_name"
+                    :modelValue="outbound.product?.product_name || 'N/A'"
+                    :disabled="true"
                   />
                   <StandardFloatingInput
                     id="product_code"
@@ -325,48 +359,45 @@ function handleKeydown(e) {
                     name="product_code"
                     placeholder="Product Code"
                     label="Product Code"
-                    :modelValue="product.product_code"
+                    :modelValue="outbound.product?.product_code || 'N/A'"
                     :disabled="true"
                   />
-                  <div class="sm:col-span-2">
-                    <label
-                      for="product_description"
-                      class="block text-sm font-medium text-gray-500 mb-1"
-                      >Description</label
-                    >
-                    <textarea
-                      id="product_description"
-                      name="product_description"
-                      rows="4"
-                      placeholder="Enter product description"
-                      v-model="product.product_description"
-                      class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sub focus:border-sub text-base sm:text-sm"
-                    ></textarea>
-                  </div>
                 </div>
               </div>
 
-              <!-- Inventory & Price Section -->
+              <!-- Transaction Details Section -->
               <div class="p-5 border rounded-xl">
-                <h3 class="font-bold text-lg text-gray-800 mb-4">Inventory & Price</h3>
+                <h3 class="font-bold text-lg text-gray-800 mb-4">Transaction Details</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <StandardFloatingInput
-                    id="product_price"
+                    id="outbound_destination"
                     type="text"
-                    name="product_price"
-                    placeholder="Price"
-                    label="Price (Rp)"
-                    v-model="product.product_price"
-                    @input="handlePriceInput"
+                    name="outbound_destination"
+                    placeholder="Customer"
+                    label="Customer / Destination"
+                    v-model="outbound.destination"
                   />
                   <StandardFloatingInput
-                    id="product_qty"
+                    id="outbound_qty"
                     type="number"
-                    name="product_qty"
+                    name="outbound_qty"
                     placeholder="Quantity"
-                    label="Stock Quantity"
-                    v-model="product.product_qty"
+                    label="Quantity"
+                    v-model="outbound.qty"
                   />
+                  <div class="sm:col-span-2">
+                    <label for="outbound_notes" class="block text-sm font-medium text-gray-500 mb-1"
+                      >Notes</label
+                    >
+                    <textarea
+                      id="outbound_notes"
+                      name="outbound_notes"
+                      rows="4"
+                      placeholder="Enter transaction notes (optional)"
+                      v-model="outbound.notes"
+                      class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sub focus:border-sub text-base sm:text-sm"
+                    ></textarea>
+                  </div>
                 </div>
               </div>
             </div>
@@ -375,7 +406,7 @@ function handleKeydown(e) {
       </form>
     </div>
     <div v-else class="text-center py-20">
-      <p class="text-gray-500">Loading product details...</p>
+      <p class="text-gray-500">Loading outbound details...</p>
     </div>
   </main>
 

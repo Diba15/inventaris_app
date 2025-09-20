@@ -79,6 +79,16 @@ const router = createRouter({
       }
     },
     {
+      path: '/outbound-details/:id',
+      name: 'outbound-details',
+      component: () => import('../views/Auth/OutboundDetails.vue'),
+      meta: {
+        title: 'Outbound Details',
+        description: 'View outbound transaction details',
+        requiresAuth: true
+      }
+    },
+    {
       path: '/suppliers',
       name: 'suppliers',
       component: SuppliersView,

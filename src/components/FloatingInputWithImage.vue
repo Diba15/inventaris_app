@@ -1,117 +1,3 @@
-<template>
-  <div class="relative" ref="autocompleteRef">
-    <div class="relative">
-      <input
-        :id="id"
-        type="text"
-        :value="displayValue"
-        :disabled="disabled"
-        :required="required"
-        @input="handleInput"
-        @focus="handleFocus"
-        @blur="handleBlur"
-        @keydown="handleKeydown"
-        class="autocomplete-input"
-        :class="{
-          error: hasError,
-          disabled: disabled,
-          filled: displayValue || isFocused,
-          'dropdown-open': isDropdownOpen,
-        }"
-        autocomplete="off"
-      />
-
-      <label
-        :for="id"
-        class="autocomplete-label"
-        :class="{
-          error: hasError,
-          disabled: disabled,
-          active: displayValue || isFocused,
-        }"
-      >
-        {{ label }}
-        <span v-if="required" class="text-red-500 ml-1">*</span>
-      </label>
-
-      <!-- Clear button -->
-      <button
-        v-if="selectedValue && !disabled"
-        type="button"
-        @mousedown.prevent="clearSelection"
-        class="clear-button"
-        tabindex="-1"
-      >
-        <svg class="clear-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-
-      <!-- Dropdown arrow -->
-      <button
-        type="button"
-        @mousedown.prevent="toggleDropdown"
-        class="dropdown-arrow"
-        :class="{
-          open: isDropdownOpen,
-          'with-clear': selectedValue && !disabled,
-        }"
-        tabindex="-1"
-      >
-        <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Dropdown Options -->
-    <div v-show="isDropdownOpen && filteredOptions.length > 0" class="dropdown-menu">
-      <div class="dropdown-content">
-        <div
-          v-for="(option, index) in filteredOptions"
-          :key="getOptionValue(option)"
-          @mousedown.prevent="selectOption(option)"
-          @mouseenter="highlightedIndex = index"
-          class="dropdown-option flex items-center gap-2 cursor-pointer"
-          :class="{
-            highlighted: index === highlightedIndex,
-            selected: getOptionValue(option) === selectedValue,
-          }"
-        >
-          <!-- Image di kiri -->
-          <img v-if="option?.product_image?.url" :src="option?.product_image?.url" alt="option image" class="w-12 h-12 rounded-full object-cover" />
-          <span>{{ getOptionLabel(option) }} - {{ option?.product_code }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- No results -->
-    <div
-      v-show="isDropdownOpen && filteredOptions.length === 0 && searchQuery"
-      class="dropdown-menu"
-    >
-      <div class="dropdown-content">
-        <div class="dropdown-option no-results">No results found</div>
-      </div>
-    </div>
-
-    <!-- Error message -->
-    <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600">
-      {{ errorMessage }}
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 
@@ -384,6 +270,120 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 </script>
+
+<template>
+  <div class="relative" ref="autocompleteRef">
+    <div class="relative">
+      <input
+        :id="id"
+        type="text"
+        :value="displayValue"
+        :disabled="disabled"
+        :required="required"
+        @input="handleInput"
+        @focus="handleFocus"
+        @blur="handleBlur"
+        @keydown="handleKeydown"
+        class="autocomplete-input"
+        :class="{
+          error: hasError,
+          disabled: disabled,
+          filled: displayValue || isFocused,
+          'dropdown-open': isDropdownOpen,
+        }"
+        autocomplete="off"
+      />
+
+      <label
+        :for="id"
+        class="autocomplete-label"
+        :class="{
+          error: hasError,
+          disabled: disabled,
+          active: displayValue || isFocused,
+        }"
+      >
+        {{ label }}
+        <span v-if="required" class="text-red-500 ml-1">*</span>
+      </label>
+
+      <!-- Clear button -->
+      <button
+        v-if="selectedValue && !disabled"
+        type="button"
+        @mousedown.prevent="clearSelection"
+        class="clear-button"
+        tabindex="-1"
+      >
+        <svg class="clear-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+
+      <!-- Dropdown arrow -->
+      <button
+        type="button"
+        @mousedown.prevent="toggleDropdown"
+        class="dropdown-arrow"
+        :class="{
+          open: isDropdownOpen,
+          'with-clear': selectedValue && !disabled,
+        }"
+        tabindex="-1"
+      >
+        <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Dropdown Options -->
+    <div v-show="isDropdownOpen && filteredOptions.length > 0" class="dropdown-menu">
+      <div class="dropdown-content">
+        <div
+          v-for="(option, index) in filteredOptions"
+          :key="getOptionValue(option)"
+          @mousedown.prevent="selectOption(option)"
+          @mouseenter="highlightedIndex = index"
+          class="dropdown-option flex items-center gap-2 cursor-pointer"
+          :class="{
+            highlighted: index === highlightedIndex,
+            selected: getOptionValue(option) === selectedValue,
+          }"
+        >
+          <!-- Image di kiri -->
+          <img v-if="option?.product_image[0]?.url" :src="option?.product_image[0]?.url" alt="option image" class="w-12 h-12 rounded-full object-cover" />
+          <span>{{ getOptionLabel(option) }} - {{ option?.product_code }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- No results -->
+    <div
+      v-show="isDropdownOpen && filteredOptions.length === 0 && searchQuery"
+      class="dropdown-menu"
+    >
+      <div class="dropdown-content">
+        <div class="dropdown-option no-results">No results found</div>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600">
+      {{ errorMessage }}
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .autocomplete-input {
