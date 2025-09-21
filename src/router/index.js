@@ -7,6 +7,7 @@ import SuppliersView from '@/views/Auth/SuppliersView.vue'
 import WarehouseView from '@/views/Auth/WarehouseView.vue'
 import ReportsView from '@/views/Auth/ReportsView.vue'
 import UsersVue from '@/views/Auth/UsersVue.vue'
+import CategoryView from '@/views/Auth/CategoryView.vue'
 
 // Auth views
 import LoginView from '@/views/Auth/LoginView.vue'
@@ -55,6 +56,16 @@ const router = createRouter({
       meta: {
         title: 'Dashboard',
         description: 'Overview of your inventory management',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/categories',
+      name: 'categories',
+      component: CategoryView,
+      meta: {
+        title: 'Categories',
+        description: 'Manage your product categories',
         requiresAuth: true
       }
     },

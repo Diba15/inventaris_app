@@ -16,6 +16,7 @@ const menuItems = computed(() => {
     if (role.value.value === 'Admin') {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: 'fa-solid fa-chart-simple' },
+        { name: 'Categories', path: '/categories', icon: 'fa-solid fa-tags' },
         { name: 'Transactions', path: '/transactions', icon: 'fa-solid fa-box-open' },
         { name: 'Suppliers', path: '/suppliers', icon: 'fa-solid fa-truck' },
         { name: 'Warehouse', path: '/warehouse', icon: 'fa-solid fa-warehouse' },
