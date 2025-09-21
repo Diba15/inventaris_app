@@ -6,44 +6,62 @@ defineOptions({
   name: 'product_details',
 })
 
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
-import { ref, onMounted, computed } from 'vue'
+import AutoCompleteInput from '@/components/AutoCompleteInput.vue'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import axios from 'axios'
 
 const route = useRoute()
+const router = useRouter()
+
 const product = ref(null)
+const suppliers = ref([])
+const allWarehouses = ref([]) // Renamed to avoid confusion
+const categories = ref([])
 
-// --- MODIFIED: State for Multiple Image Handling ---
-const imageInput = ref(null) // Ref for the file input element
-const previewUrls = ref([]) // Array for new image preview URLs
-const selectedFiles = ref([]) // Array for new selected file objects
+// --- REVISED: State management for relations ---
+const selectedCategory = ref(null)
+const selectedSupplier = ref(null)
+// This will now hold the array of warehouse objects for the current product
+const productWarehouses = ref([])
+// This is for the AutoComplete input to add a new warehouse
+const warehouseToAdd = ref(null)
 
-// --- NEW: State for Gallery Popup ---
+const id = route.params.id
+
+const imageInput = ref(null)
+const previewUrls = ref([])
+const selectedFiles = ref([])
+
 const isGalleryOpen = ref(false)
 const activeImageIndex = ref(0)
 
-// --- MODIFIED: Computed property to combine existing and new images for the gallery ---
 const galleryImages = computed(() => {
   const existingImages =
     product.value?.product_image?.map((img) => ({
       ...img,
-      type: 'existing', // Mark as an existing image
+      type: 'existing',
       url: img.url,
     })) || []
 
   const newImages = previewUrls.value.map((url, index) => ({
     url,
-    type: 'new', // Mark as a new preview image
-    file: selectedFiles.value[index], // Keep reference to the file
+    type: 'new',
+    file: selectedFiles.value[index],
   }))
 
   return [...existingImages, ...newImages]
 })
 
+// Computed property to filter out already added warehouses from the dropdown
+const availableWarehouses = computed(() => {
+  const selectedIds = new Set(productWarehouses.value.map((w) => w.documentId))
+  return allWarehouses.value.filter((w) => !selectedIds.has(w.documentId))
+})
+
 const getProductDetails = async () => {
-  const id = route.params.id
   try {
     const response = await axios.get(`${STRAPI_URL}/api/products/${id}?populate=*`)
     // Ensure product_image is always an array
@@ -53,28 +71,77 @@ const getProductDetails = async () => {
       response.data.data.product_image = []
     }
     product.value = response.data.data
+
+    selectedCategory.value = product.value.product_category.category
+    selectedSupplier.value = product.value.supplier_id?.documentId || null
+
+    productWarehouses.value = response.data.data.warehouse
   } catch (error) {
     console.error('Failed to fetch product details:', error)
     push.error('Failed to load product details.')
   }
 }
 
-onMounted(() => {
-  getProductDetails()
+const getCategories = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/product-categories`)
+  categories.value = response.data.data
+
+  localStorage.setItem('categories', JSON.stringify(categories.value))
+}
+
+const getSuppliers = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/suppliers?populate=*`)
+  suppliers.value = response.data.data
+}
+
+const getWarehouses = async () => {
+  const response = await axios.get(`${STRAPI_URL}/api/warehouses?populate=*`)
+  allWarehouses.value = response.data.data
+}
+
+onMounted(async () => {
+  const promises = [getProductDetails(), getCategories(), getSuppliers(), getWarehouses()]
+
+  await Promise.all(promises)
+
   // Add keyboard event listener for gallery navigation
   window.addEventListener('keydown', handleKeydown)
 })
 
-// --- MODIFIED: Logic for updating product with multiple images ---
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
+
+watch(warehouseToAdd, (newWarehouseId) => {
+  if (newWarehouseId) {
+    const warehouseObject = allWarehouses.value.find((w) => w.documentId === newWarehouseId)
+    if (warehouseObject && !productWarehouses.value.some((w) => w.documentId === newWarehouseId)) {
+      productWarehouses.value.push(warehouseObject)
+    }
+    // Reset the input after adding
+    warehouseToAdd.value = null
+  }
+})
+
+function removeWarehouse(warehouseId) {
+  const index = productWarehouses.value.findIndex((w) => w.documentId === warehouseId)
+  if (index > -1) {
+    productWarehouses.value.splice(index, 1)
+  }
+}
+
 const updateProduct = async () => {
-  const id = route.params.id
-  const price = product.value.product_price.toString()
+  const price = product.value.product_price ? product.value.product_price.toString() : '0'
+  const categoryObject = categories.value.find((c) => c.category === selectedCategory.value)
 
   const updatedData = {
     product_name: product.value.product_name,
     product_description: product.value.product_description,
     product_price: Number(price.replace(/[^0-9]/g, '')),
     product_qty: product.value.product_qty,
+    product_category: categoryObject ? categoryObject.documentId : null,
+    supplier_id: selectedSupplier.value,
+    warehouse: productWarehouses.value.map((w) => w.documentId), // Send an array of IDs
   }
 
   const notif = push.promise({
@@ -83,35 +150,34 @@ const updateProduct = async () => {
   })
 
   try {
-    // 1. Handle image uploads first if there are new files
     let newImageIds = []
     if (selectedFiles.value.length > 0) {
       const formData = new FormData()
       selectedFiles.value.forEach((file) => formData.append('files', file))
-
       const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, formData)
       newImageIds = imageResponse.data.map((img) => img.id)
     }
 
-    // 2. Combine existing image IDs with new ones
     const existingImageIds = product.value.product_image.map((img) => img.id)
     const allImageIds = [...existingImageIds, ...newImageIds]
 
-    // 3. Update product with text fields and new image relations
     await axios.put(`${STRAPI_URL}/api/products/${id}`, {
       data: {
         ...updatedData,
-        product_image: allImageIds, // Send the combined array of IDs
+        product_image: allImageIds,
       },
     })
 
-    clearImageChange() // Clear the preview
-    await getProductDetails() // Refresh the product details after update
+    clearImageChange()
+    await getProductDetails()
 
     notif.resolve({
       type: 'success',
       message: 'Product updated successfully!',
     })
+    setTimeout(() => {
+      router.push({ name: 'Products' })
+    }, 1500)
   } catch (error) {
     console.error('Error updating product:', error)
     notif.reject({
@@ -238,7 +304,7 @@ function handleKeydown(e) {
             </button>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 p-6 items-center">
             <!-- Left Column: Image Gallery -->
             <div class="md:col-span-1 flex flex-col gap-4">
               <div
@@ -342,6 +408,59 @@ function handleKeydown(e) {
                       v-model="product.product_description"
                       class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-sub focus:border-sub text-base sm:text-sm"
                     ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Classification & Sourcing -->
+              <div class="p-5 border rounded-xl">
+                <h3 class="font-bold text-lg text-gray-800 mb-4">Classification & Sourcing</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <AutoCompleteInput
+                    id="product_category"
+                    label="Product Category"
+                    placeholder="Search categories..."
+                    v-model="selectedCategory"
+                    :options="categories"
+                    option-label="category"
+                    option-value="category"
+                  />
+                  <AutoCompleteInput
+                    id="product_supplier"
+                    label="Supplier"
+                    placeholder="Search suppliers..."
+                    v-model="selectedSupplier"
+                    :options="suppliers"
+                    option-label="supplier_name"
+                    option-value="documentId"
+                  />
+                  <div class="sm:col-span-2">
+                    <AutoCompleteInput
+                      id="product_warehouse"
+                      label="Add Warehouse"
+                      placeholder="Search and add warehouses..."
+                      v-model="warehouseToAdd"
+                      :options="availableWarehouses"
+                      option-label="warehouse_name"
+                      option-value="documentId"
+                    />
+                    <!-- Warehouse Pills -->
+                    <div v-if="productWarehouses.length > 0" class="flex flex-wrap gap-2 mt-3">
+                      <div
+                        v-for="warehouse in productWarehouses"
+                        :key="warehouse.documentId"
+                        class="flex items-center gap-2 bg-amber-100 text-amber-800 text-sm font-medium px-3 py-1.5 rounded-full"
+                      >
+                        <span>{{ warehouse.warehouse_name }}</span>
+                        <button
+                          @click.prevent="removeWarehouse(warehouse.documentId)"
+                          type="button"
+                          class="text-amber-600 hover:text-amber-800"
+                        >
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

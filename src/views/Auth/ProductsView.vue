@@ -655,16 +655,18 @@ onMounted(async () => {
               v-if="tab === 'inbounds'"
               @click="postProduct"
               type="button"
-              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
+              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer flex items-center gap-2"
             >
+              <i class="fa-solid fa-plus"></i>
               Add Product
             </button>
             <button
               v-if="tab === 'outbounds'"
               type="button"
               @click="posOutbounds"
-              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer"
+              class="bg-white/20 hover:bg-white/30 self-end-safe text-white px-4 py-2 min-w-[100px] h-[40px] rounded transition-colors cursor-pointer flex items-center gap-2"
             >
+              <i class="fa-solid fa-plus"></i>
               Add Outbound
             </button>
           </div>
@@ -728,6 +730,7 @@ onMounted(async () => {
                 />
               </div>
               <div class="flex flex-col md:flex-row gap-4 w-full">
+                <!-- Image -->
                 <div class="w-full md:w-80 flex-shrink-0">
                   <div
                     v-if="imageUrls.length === 0"
