@@ -27,7 +27,8 @@
     "notivue": "^2.4.5",
     "tailwindcss": "^4.1.11",
     "vue": "^3.5.17",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
