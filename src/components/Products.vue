@@ -182,30 +182,34 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
 <template>
   <div>
     <!-- Enhanced Search Bar -->
-    <div class="flex items-center px-4 relative">
-      <input
-        type="text"
-        id="searchProduct"
-        placeholder="Search by name, code, description, price, or quantity..."
-        class="mb-2 px-2 py-1 rounded-l w-full max-w-[400px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none"
-        @input="handleSearch"
-        :value="searchTerm"
-      />
+    <div class="px-4 mb-4">
+      <div class="relative w-full max-w-lg bg-white rounded-md shadow-sm">
+        <!-- Search Icon -->
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <i class="fa fa-search text-gray-400"></i>
+        </div>
 
-      <!-- Clear search button -->
-      <button
-        v-if="isSearching"
-        @click="clearSearch"
-        class="mb-2 bg-white px-2 py-1 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
-        title="Clear search"
-      >
-        <i class="fa fa-times"></i>
-      </button>
+        <!-- Input Field -->
+        <input
+          type="text"
+          id="searchProduct"
+          placeholder="Search by name, code, description, price, or quantity..."
+          class="block w-full max-w-lg rounded-md border border-gray-300 py-2 pl-10 pr-10 text-base placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sub focus:border-sub"
+          :value="searchTerm"
+          @input="handleSearch"
+        />
 
-      <!-- Search icon -->
-      <i
-        class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2 py-1.5 rounded-r text-gray-400 border-r border-t border-b border-[#d1d5db]"
-      ></i>
+        <!-- Clear Search Button -->
+        <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <button
+            @click="clearSearch"
+            class="text-gray-500 hover:text-red-500 transition-colors focus:outline-none"
+            title="Clear search"
+          >
+            <i class="fa fa-times-circle"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Search Results Info -->
@@ -224,10 +228,10 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
           <tr>
             <th
               class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-              @click="sortBy('product_code')"
+              @click="sortBy('in_id')"
             >
-              Product Code
-              <span v-if="sortKey === 'product_code'">
+              ID
+              <span v-if="sortKey === 'in_id'">
                 <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
               </span>
             </th>
@@ -289,7 +293,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
             ]"
           >
             <td class="px-6 py-4 whitespace-nowrap">
-              <span v-html="highlightSearchTerm(product.product_code, searchTerm)"></span>
+              <span v-html="highlightSearchTerm(product.in_id, searchTerm)"></span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <span v-html="highlightSearchTerm(product.product_name, searchTerm)"></span>
@@ -341,7 +345,7 @@ const isSearching = computed(() => searchTerm.value.trim().length > 0)
                 <p class="text-sm">Try adjusting your search terms</p>
                 <button
                   @click="clearSearch"
-                  class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                  class="mt-2 px-4 py-2 bg-sub text-white rounded hover:bg-yellow-600 transition-colors"
                 >
                   Clear Search
                 </button>

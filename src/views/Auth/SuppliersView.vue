@@ -1,111 +1,459 @@
 <script setup>
 import { ref, computed, nextTick, watchEffect, onMounted } from 'vue'
 import SupplierCard from '@/components/supplier/SupplierCard.vue'
+import StandardFloatingInput from '@/components/StandardFloatingInput.vue'
+import CustomModal from '@/components/CustomModal.vue'
+import AlertComponent from '@/components/AlertComponent.vue'
+import axios from 'axios'
+import { Notivue, Notification, push, pastelTheme, NotificationProgress } from 'notivue'
 
-const dummySupplierList = ref([
-  {
-    id: 1,
-    name: 'P.T Indofood',
-    arrive_at: '2022-01-01',
-    courier_name: 'JNE',
-    img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Indofood_logo-en.svg/2560px-Indofood_logo-en.svg.png',
-    total_cost: 10000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-01 00:00:00',
-  },
-  {
-    id: 2,
-    name: 'Unilever',
-    arrive_at: '2022-01-02',
-    courier_name: 'J&T',
-    img: 'https://upload.wikimedia.org/wikipedia/id/3/37/Unilever.png',
-    total_cost: 20000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-02 00:00:00',
-  },
-  {
-    id: 3,
-    name: 'Wings Group',
-    arrive_at: '2022-01-03',
-    courier_name: 'SiCepat',
-    img: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Wings_%28Indonesian_company%29_logo.svg',
-    total_cost: 30000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-03 00:00:00',
-  },
-  {
-    id: 4,
-    name: 'Orang Tua',
-    arrive_at: '2022-01-04',
-    courier_name: 'JNE',
-    img: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6rsc0issrrP5wz90_ALseipslxuZq40VxV5HzFFtGCVCE2XeQPk8ZoRQWBPCRsVtAHwFDYsCQyqJqpuuEP71wdKHjC8gdFdam-wNfsbwiFrQCtByDJdov1Llh9bnI9NfIx-JIDq7fUB14PpPKqG0oDadVNmedyploPT9JiWF_98UVLnjRjXyRpnnMZszG/s804/ot-svg.webp',
-    total_cost: 40000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-04 00:00:00',
-  },
-  {
-    id: 5,
-    name: 'Nestle',
-    arrive_at: '2022-01-05',
-    courier_name: 'J&T',
-    img: 'https://logos-world.net/wp-content/uploads/2020/09/Nestle-Logo.png',
-    total_cost: 50000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-05 00:00:00',
-  },
-  {
-    id: 6,
-    name: 'Mayora',
-    arrive_at: '2022-01-06',
-    courier_name: 'SiCepat',
-    img: '',
-    total_cost: 60000,
-    other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
-    created_at: '2022-01-06 00:00:00',
-  },
-])
+defineOptions({
+  name: 'supplier_component',
+})
 
-// Props for emits (similar to products component)
-const emit = defineEmits(['deleteSupplier', 'openDeleteModal'])
+const STRAPI_URL = import.meta.env.VITE_STRAPI_URL
+const suppliers = ref([])
 
 // Enhanced state management
 const startPage = ref(0)
 const totalData = ref(0)
 const currentPage = ref(1)
 const searchTerm = ref('') // Add reactive search term
-const sortOrder = ref('asc')
-const sortKey = ref('name')
 
-// Pagination calculations
-const startPageCount = computed(() => startPage.value * 5 + 1)
-const endPageCount = computed(() => {
-  const end = startPage.value * 5 + 5
-  return end > filteredSuppliers.value.length ? filteredSuppliers.value.length : end
-})
+// Delete Modal
+const deleteId = ref(null)
+const show = ref(false)
+const message = ref('')
+const modalType = ref('warning')
+const imageDelete = ref(null)
 
-onMounted(() => {
-  watchEffect(() => {
-    totalData.value = filteredSuppliers.value.length
+const carousel = ref(null) // Template ref untuk elemen carousel
+
+// Limit supplier for display
+const displayLimit = ref(6)
+
+// --- Image Upload State (Refactored) ---
+const imageInput = ref(null) // Ref for the file input element
+const imageUrl = ref(null) // Ref for the image preview URL
+const selectedFile = ref(null) // Ref to store the selected file object
+
+function imageUploadHandleClick() {
+  imageInput.value.click()
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0]
+  if (file) {
+    selectedFile.value = file
+    imageUrl.value = URL.createObjectURL(file)
+  }
+}
+
+function clearImageHandle() {
+  imageUrl.value = null
+  selectedFile.value = null
+  if (imageInput.value) {
+    imageInput.value.value = ''
+  }
+}
+
+try {
+  suppliers.value = JSON.parse(localStorage.getItem('suppliers'))
+
+  // Sort supplier by date created desc
+  suppliers.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+} catch (error) {
+  console.error('Error parsing suppliers from localStorage:', error)
+}
+
+async function getSuppliers() {
+  const response = await axios.get(`${STRAPI_URL}/api/suppliers?populate=*`)
+  suppliers.value = response.data.data
+
+  localStorage.setItem('suppliers', JSON.stringify(suppliers.value))
+
+  // Sort supplier by date created desc
+  suppliers.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+}
+
+async function postSuppliers() {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Adding supplier...',
+    duration: 0,
   })
+  try {
+    const data = {
+      supplier_name: newSupplier.value.name,
+      supplier_address: newSupplier.value.address,
+      pic_contact: newSupplier.value.contact,
+      pic_supplier: newSupplier.value.supplier_pic,
+      with_whatsapp: newSupplier.value.whatsapp_status,
+    }
+
+    if (!data.supplier_name || !data.supplier_address || !data.pic_contact || !data.pic_supplier) {
+      notif.reject({
+        type: 'warning',
+        message: 'Please fill in all required fields',
+        duration: 3000,
+      })
+      return
+    }
+
+    const response = await axios.post(`${STRAPI_URL}/api/suppliers`, {
+      data,
+    })
+
+    // Upload image if available
+    if (selectedFile.value) {
+      const fd = new FormData()
+      fd.append('files', selectedFile.value)
+
+      const uploadRes = await fetch(`${STRAPI_URL}/api/upload`, {
+        method: 'POST',
+        body: fd,
+      })
+
+      if (uploadRes.ok) {
+        const uploadResult = await uploadRes.json()
+        const imageId = uploadResult[0].id
+
+        // Update product with image ID
+        await axios.put(`${STRAPI_URL}/api/suppliers/${response.data.data.documentId}`, {
+          data: {
+            supplier_image: imageId,
+          },
+        })
+      }
+    }
+
+    await getSuppliers()
+    clearImageHandle()
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier added successfully!',
+      duration: 3000,
+    })
+
+    imageUrl.value = ''
+    modalMessage.value = ''
+    type.value = ''
+    editId.value = null
+  } catch (error) {
+    // Handle errors
+    console.error('Error posting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to add supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+async function deleteSupplier() {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Deleting supplier...',
+    duration: 0,
+  })
+  try {
+    await axios.delete(`${STRAPI_URL}/api/suppliers/${deleteId.value}`)
+    await handleDeleteImage(imageDelete.value)
+    await getSuppliers()
+    show.value = false // Close the modal
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier deleted successfully!',
+      duration: 3000,
+    })
+
+    deleteId.value = null
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to delete supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+async function handleDeleteImage(id) {
+  try {
+    await axios.delete(`${STRAPI_URL}/api/upload/files/${id}`)
+  } catch (error) {
+    console.error('Failed to delete old image:', error)
+  }
+}
+
+async function editSupplier() {
+  const notif = push.promise({
+    type: 'info',
+    message: 'Editing supplier...',
+    duration: 0,
+  })
+  try {
+    await axios.put(`${STRAPI_URL}/api/suppliers/${editId.value}`, {
+      data: {
+        supplier_name: newSupplier.value.name,
+        supplier_address: newSupplier.value.address,
+        pic_contact: newSupplier.value.contact,
+        pic_supplier: newSupplier.value.supplier_pic,
+        with_whatsapp: newSupplier.value.whatsapp_status,
+      },
+    })
+
+    if (selectedFile.value) {
+      const oldImageId = suppliers.value.find((s) => s.documentId === editId.value)?.supplier_image
+        ?.id
+      const fd = new FormData()
+      fd.append('files', selectedFile.value)
+
+      // Upload the new image
+      const imageResponse = await axios.post(`${STRAPI_URL}/api/upload`, fd)
+      const newImageId = imageResponse.data[0]?.id
+
+      if (newImageId) {
+        // Link the new image to the product
+        await axios.put(`${STRAPI_URL}/api/suppliers/${editId.value}`, {
+          data: { supplier_image: newImageId },
+        })
+
+        // Delete the old image after the new one is successfully linked
+        if (oldImageId) {
+          await handleDeleteImage(oldImageId)
+        }
+      }
+    }
+
+    await getSuppliers()
+    clearImageHandle()
+    isAddModalOpen.value = false
+    notif.resolve({
+      type: 'success',
+      message: 'Supplier edited successfully!',
+      duration: 3000,
+    })
+
+    imageUrl.value = ''
+    modalMessage.value = ''
+    type.value = ''
+    editId.value = null
+  } catch (error) {
+    console.error('Error editing product:', error)
+    notif.reject({
+      type: 'error',
+      message: 'Failed to edit supplier. Please try again.',
+      duration: 3000,
+    })
+  }
+}
+
+// const dummySupplierList = ref([
+//   {
+//     id: 1,
+//     name: 'P.T Indofood',
+//     pic_name: 'Budi Santoso',
+//     contact: '0812-1111-2222',
+//     address: 'Sudirman Plaza, Jl. Jenderal Sudirman Kav. 76-78, Jakarta',
+//     arrive_at: '2022-01-01',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Indofood_logo-en.svg/2560px-Indofood_logo-en.svg.png',
+//     total_cost: 10000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-01 00:00:00',
+//   },
+//   {
+//     id: 2,
+//     name: 'Unilever',
+//     pic_name: 'Citra Lestari',
+//     contact: '0813-2222-3333',
+//     address: 'Grha Unilever, Jl. BSD Boulevard Barat, Green Office Park Kav. 3, Tangerang',
+//     arrive_at: '2022-01-02',
+//     courier_name: 'J&T',
+//     img: 'https://upload.wikimedia.org/wikipedia/id/3/37/Unilever.png',
+//     total_cost: 20000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-02 00:00:00',
+//   },
+//   {
+//     id: 3,
+//     name: 'Wings Group',
+//     pic_name: 'Agus Wijaya',
+//     contact: '0815-3333-4444',
+//     address: 'Jl. Tipar Cakung Kav. F 5-7, Cakung Barat, Jakarta Timur',
+//     arrive_at: '2022-01-03',
+//     courier_name: 'SiCepat',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Wings_%28Indonesian_company%29_logo.svg',
+//     total_cost: 30000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-03 00:00:00',
+//   },
+//   {
+//     id: 4,
+//     name: 'Orang Tua',
+//     pic_name: 'Dewi Anggraini',
+//     contact: '0817-4444-5555',
+//     address: 'OT Building, Jl. Lingkar Luar Barat Kav. 35-36, Cengkareng, Jakarta Barat',
+//     arrive_at: '2022-01-04',
+//     courier_name: 'JNE',
+//     img: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi6rsc0issrrP5wz90_ALseipslxuZq40VxV5HzFFtGCVCE2XeQPk8ZoRQWBPCRsVtAHwFDYsCQyqJqpuuEP71wdKHjC8gdFdam-wNfsbwiFrQCtByDJdov1Llh9bnI9NfIx-JIDq7fUB14PpPKqG0oDadVNmedyploPT9JiWF_98UVLnjRjXyRpnnMZszG/s804/ot-svg.webp',
+//     total_cost: 40000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-04 00:00:00',
+//   },
+//   {
+//     id: 5,
+//     name: 'Nestle',
+//     pic_name: 'Rahmat Hidayat',
+//     contact: '0818-5555-6666',
+//     address: 'Perkantoran Hijau Arkadia, Tower B, Jl. TB Simatupang Kav. 88, Jakarta Selatan',
+//     arrive_at: '2022-01-05',
+//     courier_name: 'J&T',
+//     img: 'https://logos-world.net/wp-content/uploads/2020/09/Nestle-Logo.png',
+//     total_cost: 50000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-05 00:00:00',
+//   },
+//   {
+//     id: 6,
+//     name: 'Mayora',
+//     pic_name: 'Sari Puspita',
+//     contact: '0819-6666-7777',
+//     address: 'Gedung Mayora, Jl. Tomang Raya No. 21-23, Jakarta Barat',
+//     arrive_at: '2022-01-06',
+//     courier_name: 'SiCepat',
+//     img: '',
+//     total_cost: 60000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-06 00:00:00',
+//   },
+//   {
+//     id: 7,
+//     name: 'Procter & Gamble',
+//     pic_name: 'Andi Pratama',
+//     contact: '0852-7777-8888',
+//     address: 'Sentral Senayan 8, Jl. Asia Afrika No. 8, Jakarta Pusat',
+//     arrive_at: '2022-01-07',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Procter_%26_Gamble_logo.svg/1024px-Procter_%26_Gamble_logo.svg.png',
+//     total_cost: 70000,
+//     other: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+//     created_at: '2022-01-07 00:00:00',
+//   },
+//   {
+//     id: 8,
+//     name: 'GarudaFood',
+//     pic_name: 'Eka Kurniawan',
+//     contact: '0856-8888-9999',
+//     address: 'Wisma Garudafood, Jl. Bintaro Raya No. 10A, Jakarta Selatan',
+//     arrive_at: '2022-01-08',
+//     courier_name: 'JNE',
+//     img: 'https://upload.wikimedia.org/wikipedia/id/thumb/d/d1/Garudafood_logo.svg/1200px-Garudafood_logo.svg.png',
+//     total_cost: 80000,
+//     other: 'Another supplier description.',
+//     created_at: '2022-01-08 00:00:00',
+//   },
+//   {
+//     id: 9,
+//     name: 'Kao Corporation',
+//     pic_name: 'Fitriani',
+//     contact: '0857-9999-0000',
+//     address: 'Jl. MT Haryono Kav. 33, Jakarta Industrial Estate Pulogadung, Jakarta Timur',
+//     arrive_at: '2022-01-09',
+//     courier_name: 'J&T',
+//     img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Kao_logo.svg/1200px-Kao_logo.svg.png',
+//     total_cost: 90000,
+//     other: 'Details about Kao supply.',
+//     created_at: '2022-01-09 00:00:00',
+//   },
+// ])
+
+const isAddModalOpen = ref(false) // Add modal
+const modalMessage = ref('')
+const type = ref('')
+const editId = ref(null)
+
+const newSupplier = ref({
+  name: '',
+  address: '',
+  contact: '',
+  supplier_pic: '',
+  whatsapp_status: false,
 })
+
+function openAddModal() {
+  isAddModalOpen.value = true
+  modalMessage.value = 'Add New Supplier'
+  type.value = 'add'
+}
+
+function closeModal() {
+  isAddModalOpen.value = false
+  // Reset form fields
+  newSupplier.value = {
+    name: '',
+    address: '',
+    contact: '',
+    supplier_pic: '',
+    whatsapp_status: false,
+  }
+
+  imageUrl.value = ''
+  type.value = ''
+}
+
+function openDeleteModal(id, imageId) {
+  message.value = `Are you sure you want to delete?`
+  show.value = true
+  modalType.value = 'delete'
+  deleteId.value = id
+  imageDelete.value = imageId // Store the image ID for deletion
+}
+
+function openEditModal(id) {
+  // Find the supplier by ID
+  const supplier = suppliers.value.find((s) => s.documentId === id)
+
+  isAddModalOpen.value = true
+  newSupplier.value = {
+    name: supplier.supplier_name,
+    address: supplier.supplier_address,
+    contact: supplier.pic_contact,
+    supplier_pic: supplier.pic_supplier,
+    whatsapp_status: supplier.with_whatsapp,
+  }
+
+  imageUrl.value = supplier?.supplier_image?.url
+  modalMessage.value = 'Edit Supplier'
+  type.value = 'edit'
+  editId.value = id
+}
+
+function handleSupplierModal() {
+  if (type.value === 'add') {
+    postSuppliers()
+  } else if (type.value === 'edit') {
+    editSupplier(editId)
+  }
+  closeModal()
+}
 
 // Enhanced search functionality for both table and cards
 const filteredSuppliers = computed(() => {
   if (!searchTerm.value.trim()) {
-    return dummySupplierList.value
+    return suppliers.value
   }
 
   const search = searchTerm.value.toLowerCase().trim()
 
-  return dummySupplierList.value.filter((supplier) => {
+  return suppliers.value.filter((supplier) => {
     // Search in multiple fields
     const searchableFields = [
-      supplier.name?.toLowerCase() || '',
-      supplier.arrive_at?.toLowerCase() || '',
-      supplier.courier_name?.toLowerCase() || '',
-      supplier.total_cost?.toString() || '',
-      supplier.other?.toLowerCase() || '',
-      supplier.created_at?.toLowerCase() || '',
+      supplier.supplier_name?.toLowerCase() || '',
+      supplier.supplier_address?.toLowerCase() || '',
+      supplier.pic_contact?.toLowerCase() || '',
+      supplier.pic_supplier?.toLowerCase() || '',
     ]
 
     // Check if any field contains the search term
@@ -113,83 +461,19 @@ const filteredSuppliers = computed(() => {
   })
 })
 
-// Filtered suppliers for card carousel
-const filteredSuppliersForCards = computed(() => filteredSuppliers.value)
-
-// Filter suppliers per page
-const limit = 5
-const start = computed(() => startPage.value * limit)
-const end = computed(() => startPage.value * limit + limit)
-
-const paginatedSuppliers = computed(() => {
-  return filteredSuppliers.value.slice(start.value, end.value)
+// Display Suppliers
+const displayedSuppliers = computed(() => {
+  return filteredSuppliers.value.slice(0, displayLimit.value)
 })
 
-// Computed property to sort suppliers based on the selected key and order
-const sortedSuppliers = computed(() => {
-  return [...paginatedSuppliers.value].sort((a, b) => {
-    let aValue = a[sortKey.value]
-    let bValue = b[sortKey.value]
-
-    // Handle null/undefined values
-    if (aValue == null) aValue = ''
-    if (bValue == null) bValue = ''
-
-    // Convert to string for comparison (except for numbers)
-    if (sortKey.value === 'total_cost') {
-      aValue = parseFloat(aValue) || 0
-      bValue = parseFloat(bValue) || 0
-    } else {
-      aValue = aValue.toString().toLowerCase()
-      bValue = bValue.toString().toLowerCase()
-    }
-
-    if (aValue < bValue) return sortOrder.value === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortOrder.value === 'asc' ? 1 : -1
-
-    return 0
-  })
+// Check that more suppliers are available
+const hasMoreSuppliers = computed(() => {
+  return displayedSuppliers.value.length < filteredSuppliers.value.length
 })
 
-// Function to handle pagination
-function nextPage() {
-  if (startPage.value < Math.ceil(filteredSuppliers.value.length / limit) - 1) {
-    startPage.value++
-  }
-  currentPage.value = startPage.value + 1
-  nextTick(() => {
-    const input = document.querySelector('#current-page input')
-    if (input) {
-      input.value = currentPage.value
-    }
-  })
-}
-
-function prevPage() {
-  if (startPage.value > 0) {
-    startPage.value--
-  }
-  currentPage.value = startPage.value + 1
-  nextTick(() => {
-    const input = document.querySelector('#current-page input')
-    if (input) {
-      input.value = currentPage.value
-    }
-  })
-}
-
-function goToPage(page) {
-  const totalPages = Math.ceil(filteredSuppliers.value.length / limit)
-  if (page >= 1 && page <= totalPages) {
-    startPage.value = page - 1
-    currentPage.value = page
-  }
-}
-
-// Function to sort suppliers by a key ascending and descending
-function sortBy(key) {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  sortKey.value = key
+// Function to load more suppliers
+function loadMore() {
+  displayLimit.value += 6 // Increase the limit to show 6 more cards
 }
 
 // Enhanced search function
@@ -198,6 +482,7 @@ const handleSearch = (event) => {
   // Reset to first page when searching
   startPage.value = 0
   currentPage.value = 1
+  displayLimit.value = 6 // NEW: Reset display limit on new search
 
   nextTick(() => {
     const input = document.querySelector('#current-page input')
@@ -212,6 +497,7 @@ const clearSearch = () => {
   searchTerm.value = ''
   startPage.value = 0
   currentPage.value = 1
+  displayLimit.value = 6
 
   nextTick(() => {
     const searchInput = document.querySelector('#searchSupplier')
@@ -221,91 +507,92 @@ const clearSearch = () => {
   })
 }
 
-// Function to open delete modal
-function openDeleteModal(id) {
-  emit('openDeleteModal', id)
-}
+onMounted(async () => {
+  if (suppliers.value === null || suppliers.value.length <= 0) {
+    await getSuppliers()
+  }
 
-// Computed for pagination info
-const totalPages = computed(() => Math.ceil(filteredSuppliers.value.length / limit))
-const hasResults = computed(() => filteredSuppliers.value.length > 0)
-const isSearching = computed(() => searchTerm.value.trim().length > 0)
-
-// Helper function to highlight search terms
-function highlightSearchTerm(text, searchTerm) {
-  if (!searchTerm || !text) return text
-
-  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-  return text.toString().replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>')
-}
+  watchEffect(() => {
+    totalData.value = filteredSuppliers.value.length
+  })
+})
 </script>
 
 <template>
   <div class="flex flex-col mx-4 my-4 gap-6">
     <div class="bg-white rounded-xl mb-4 shadow">
       <div
-        class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
-        <h1 class="text-xl font-bold self-start md:self-center">Suppliers</h1>
+        <div>
+          <h1 class="text-2xl font-bold">Suppliers</h1>
+          <p class="text-[var(--color-secondary)] opacity-80 mt-1">Manage your suppliers</p>
+        </div>
+        <button
+          @click="openAddModal"
+          class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+        >
+          Add Supplier
+        </button>
       </div>
 
       <div class="py-4 px-8 flex flex-col gap-4">
-        <!-- Enhanced Search Bar -->
-        <div class="flex items-center px-0 relative justify-center">
+        <div class="relative w-full max-w-[600px] mx-auto">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fa fa-search text-gray-500"></i>
+          </div>
+
           <input
             type="text"
             id="searchSupplier"
             placeholder="Search suppliers by name, courier, cost, or description..."
-            class="mb-2 p-2.5 rounded-s-xl w-full max-w-[600px] bg-white border-l border-t border-b border-[#d1d5db] text-base focus:outline-none placeholder:text-center"
-            @input="handleSearch"
+            class="block w-full rounded-md border border-gray-300 py-2.5 pl-10 pr-10 text-base placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-sub focus:border-sub"
             :value="searchTerm"
+            @input="handleSearch"
           />
 
-          <!-- Clear search button -->
-          <button
-            v-if="isSearching"
-            @click="clearSearch"
-            class="mb-2 bg-white p-2.5 border-t border-b border-[#d1d5db] text-gray-500 hover:text-gray-700 focus:outline-none"
-            title="Clear search"
-          >
-            <i class="fa fa-times"></i>
-          </button>
-
-          <!-- Search icon -->
-          <i
-            class="mb-2 fa fa-search text-xl focus:outline-none bg-white px-2.5 py-3 rounded-e-xl text-gray-400 border-r border-t border-b border-[#d1d5db]"
-          ></i>
+          <div v-if="searchTerm" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+            <button
+              @click="clearSearch"
+              class="text-gray-500 hover:text-red-500 focus:outline-none"
+              title="Clear search"
+            >
+              <i class="fa fa-times-circle"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- Search Results Info for Cards -->
-        <div v-if="isSearching" class="px-0 mb-2 text-sm text-gray-600 text-center">
-          <span v-if="filteredSuppliersForCards.length > 0">
-            Found {{ filteredSuppliersForCards.length }} supplier(s) for "{{ searchTerm }}"
+        <div v-if="searchTerm" class="px-0 mb-2 text-sm text-gray-600 text-center">
+          <span v-if="filteredSuppliers.length > 0">
+            Found {{ filteredSuppliers.length }} supplier(s) for "{{ searchTerm }}"
           </span>
           <span v-else class="text-orange-600"> No suppliers found for "{{ searchTerm }}" </span>
         </div>
 
-        <!-- Enhanced Supplier Carousel -->
         <div
           id="supplier-carousel"
-          class="flex flex-nowrap gap-10 items-center overflow-x-scroll max-w-screen"
+          ref="carousel"
+          class="flex flex-wrap gap-10 items-center justify-center"
         >
-          <!-- Show filtered suppliers in cards -->
           <supplier-card
-            v-for="supplier in filteredSuppliersForCards"
-            :key="supplier.id"
-            :name="supplier.name"
-            :courier="supplier.courier_name"
-            :cost="supplier.total_cost"
-            :arrive-date="supplier.arrive_at"
-            :img="supplier.img"
+            v-for="supplier in displayedSuppliers"
+            :key="supplier.documentId"
+            :id="supplier.documentId"
+            :name="supplier.supplier_name"
+            :imageDelete="supplier?.supplier_image?.id"
+            :img="supplier?.supplier_image?.url"
+            :picName="supplier.pic_supplier"
+            :contact="supplier.pic_contact"
+            :address="supplier.supplier_address"
+            :whatsapp-status="supplier.with_whatsapp"
             class="supplier-card-item"
-            :class="{ highlighted: isSearching }"
+            :class="{ highlighted: searchTerm }"
+            @open-delete-modal="openDeleteModal"
+            @open-edit-modal="openEditModal"
           />
 
-          <!-- No results state for cards -->
           <div
-            v-if="!filteredSuppliersForCards.length && isSearching"
+            v-if="!filteredSuppliers.length"
             class="flex flex-col items-center justify-center text-gray-400 min-w-[300px] p-8 border-2 border-dashed border-gray-300 rounded-lg"
           >
             <i class="fa fa-search text-4xl mb-2"></i>
@@ -313,189 +600,156 @@ function highlightSearchTerm(text, searchTerm) {
             <p class="text-sm">Try different search terms</p>
             <button
               @click="clearSearch"
-              class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              class="mt-2 px-4 py-2 bg-sub text-white rounded hover:bg-yellow-600 transition-colors"
             >
               Clear Search
             </button>
           </div>
+        </div>
 
-          <!-- Add Supplier Button - always visible -->
-          <div
-            class="flex flex-col items-center text-base text-2xl font-extrabold cursor-pointer min-w-fit"
+        <div v-if="hasMoreSuppliers" class="w-full flex justify-center mt-4">
+          <button
+            @click="loadMore"
+            class="px-6 py-2 bg-sub text-white font-semibold rounded-lg hover:bg-sub/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sub/80 transition-all"
           >
-            <h1>Tambah Supplier</h1>
-            <i class="fa-solid fa-plus text-4xl"></i>
-          </div>
+            Load More
+          </button>
         </div>
       </div>
     </div>
 
-    <div>
-      <!-- Enhanced Table -->
-      <div class="product-grid overflow-x-auto shadow-lg rounded-xl">
-        <table
-          class="w-full divide-y divide-gray-200 shadow-md rounded-lg overflow-hidden hover-table"
-        >
-          <thead class="bg-base text-white">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('arrive_at')"
-              >
-                Arrive At
-                <span v-if="sortKey === 'arrive_at'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('name')"
-              >
-                Supplier
-                <span v-if="sortKey === 'name'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('courier_name')"
-              >
-                Courier Name
-                <span v-if="sortKey === 'courier_name'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('total_cost')"
-              >
-                Total Cost
-                <span v-if="sortKey === 'total_cost'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer select-none"
-                @click="sortBy('created_at')"
-              >
-                Created At
-                <span v-if="sortKey === 'created_at'">
-                  <i :class="sortOrder === 'asc' ? 'fa fa-arrow-up' : 'fa fa-arrow-down'"></i>
-                </span>
-              </th>
-              <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Aksi</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200 text-base text-sm">
-            <tr
-              v-for="(supplier, index) in sortedSuppliers"
-              :key="supplier.id"
-              :class="[
-                'hover:bg-gray-300 transition-colors',
-                index % 2 === 0 ? 'bg-white' : 'bg-gray-100',
-              ]"
+    <custom-modal
+      :is-add-modal-open="isAddModalOpen"
+      @close-add-modal="closeModal"
+      :modal-title="modalMessage"
+    >
+      <form @submit.prevent="handleSupplierModal" class="space-y-4">
+        <div id="image_upload" class="w-full md:w-60 flex-shrink-0 mx-auto">
+          <!-- Placeholder when no image is selected -->
+          <div
+            v-if="!imageUrl"
+            @click="imageUploadHandleClick"
+            class="flex justify-center items-center w-full h-40 px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-sub transition-colors duration-200"
+          >
+            <div class="space-y-1 text-center">
+              <i class="fa-regular fa-image text-gray-400 text-5xl"></i>
+              <p class="text-sm text-gray-600">Click to upload image</p>
+            </div>
+          </div>
+
+          <!-- Image Preview when an image is selected -->
+          <div v-else class="relative w-full h-40">
+            <img
+              :src="imageUrl"
+              alt="Image Preview"
+              class="w-full h-full object-cover rounded-md shadow-md"
+            />
+            <button
+              @click="clearImageHandle"
+              type="button"
+              class="absolute top-2 right-2 bg-white bg-opacity-75 rounded-full p-1.5 text-gray-700 hover:bg-opacity-100 hover:text-red-600 focus:outline-none transition-colors"
+              title="Remove image"
             >
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span v-html="highlightSearchTerm(supplier.arrive_at, searchTerm)"></span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span v-html="highlightSearchTerm(supplier.name, searchTerm)"></span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span v-html="highlightSearchTerm(supplier.courier_name, searchTerm)"></span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                Rp.<span
-                  v-html="highlightSearchTerm(supplier.total_cost?.toString() || '', searchTerm)"
-                ></span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                {{
-                  new Date(supplier.created_at).toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
-                }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap flex gap-2">
-                <div class="text-blue-500 hover:text-blue-700 text-xl">
-                  <button>
-                    <i class="fa-solid fa-eye"></i>
-                  </button>
-                </div>
-                <button
-                  class="text-red-500 hover:text-red-700 text-xl"
-                  @click="openDeleteModal(supplier.id)"
-                >
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </td>
-            </tr>
-
-            <!-- No results states -->
-            <tr v-if="!hasResults && isSearching">
-              <td colspan="7" class="text-center py-8 text-gray-500">
-                <div class="flex flex-col items-center">
-                  <i class="fa fa-search text-4xl mb-2 text-gray-300"></i>
-                  <p class="text-lg">No suppliers found</p>
-                  <p class="text-sm">Try adjusting your search terms</p>
-                  <button
-                    @click="clearSearch"
-                    class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Clear Search
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-else-if="!hasResults && !isSearching">
-              <td colspan="7" class="text-center py-4">No suppliers available</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Enhanced Pagination -->
-      <div id="pagination" class="flex justify-between text-base px-4 mt-2 text-sm items-center">
-        <div>
-          {{ startPageCount }} - {{ endPageCount }} of {{ filteredSuppliers.length }}
-          <span v-if="isSearching" class="text-gray-500">
-            (filtered from {{ dummySupplierList.length }} total)
-          </span>
+              <svg
+                class="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </div>
+          <input
+            type="file"
+            class="hidden"
+            accept="image/*"
+            @change="handleImageUpload($event)"
+            ref="imageInput"
+          />
         </div>
-        <div class="flex gap-2 items-center" v-if="totalPages > 1">
-          <div
-            class="p-1 cursor-pointer"
-            :class="{ 'text-gray-400 cursor-not-allowed': currentPage === 1 }"
-            @click="prevPage()"
-          >
-            <i class="fa fa-angle-left"></i>
-          </div>
-          <div id="current-page" class="p-1 cursor-pointer">
-            <span>
-              <input
-                type="number"
-                min="1"
-                :max="totalPages"
-                :value="currentPage"
-                @input="goToPage(parseInt($event.target.value))"
-                @keyup.enter="$event.target.blur()"
-                class="px-2 py-1 max-w-[50px] text-center border rounded"
-              />
-            </span>
-            <span class="ml-1 text-gray-500">/ {{ totalPages }}</span>
-          </div>
-          <div
-            class="p-1 cursor-pointer"
-            :class="{ 'text-gray-400 cursor-not-allowed': currentPage === totalPages }"
-            @click="nextPage()"
-          >
-            <i class="fa fa-angle-right"></i>
+        <StandardFloatingInput
+          label="Supplier Name"
+          type="text"
+          id="name"
+          name="name"
+          required
+          v-model="newSupplier.name"
+        />
+        <StandardFloatingInput
+          label="Address"
+          type="text"
+          id="address"
+          name="address"
+          required
+          v-model="newSupplier.address"
+        />
+        <StandardFloatingInput
+          label="PIC Name"
+          type="text"
+          id="pic_name"
+          name="pic_name"
+          v-model="newSupplier.supplier_pic"
+        />
+        <div class="flex flex-col gap-2">
+          <StandardFloatingInput
+            class="w-full"
+            label="PIC Contact"
+            type="number"
+            id="pic_contact"
+            name="pic_contact"
+            v-model="newSupplier.contact"
+          />
+          <div class="flex gap-2 items-center">
+            <input
+              type="checkbox"
+              id="whatsapp_checkbox"
+              :checked="newSupplier.whatsapp_status"
+              class="w-3.5 h-3.5"
+            />
+            <label for="whatsapp_checkbox" class="flex items-center gap-2">
+              <p class="text-base text-xs">Is contact whatsapp integrated</p>
+              <i class="fa fa-whatsapp text-green-500"></i>
+            </label>
           </div>
         </div>
-      </div>
-    </div>
+        <div class="flex justify-end gap-4 pt-4">
+          <button
+            type="button"
+            @click="closeModal"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-sub text-white rounded-lg hover:bg-sub/90 transition-colors"
+          >
+            Save Supplier
+          </button>
+        </div>
+      </form>
+    </custom-modal>
+
+    <Notivue v-slot="item">
+      <Notification :item="item" :theme="pastelTheme">
+        <NotificationProgress :item="item" />
+      </Notification>
+    </Notivue>
+
+    <alert-component
+      :message="message"
+      :show="show"
+      @close="show = false"
+      :type="modalType"
+      @confirm="deleteSupplier"
+    />
   </div>
 </template>
 
@@ -512,5 +766,33 @@ mark {
   background-color: #fef08a;
   padding: 2px 4px;
   border-radius: 3px;
+}
+
+#whatsapp_checkbox[type='checkbox'] {
+  accent-color: #4a5568;
+  cursor: pointer;
+  /* Change checkbox color and border color */
+  border: 2px solid #f2b418;
+  border-radius: 4px;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-color: #fff;
+  position: relative;
+}
+
+#whatsapp_checkbox[type='checkbox']:hover {
+  border-color: rgba(242, 150, 24, 1);
+}
+
+#whatsapp_checkbox[type='checkbox']:checked::after {
+  content: '\2714';
+  color: #f2b418;
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>

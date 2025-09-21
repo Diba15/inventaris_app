@@ -1,110 +1,3 @@
-<template>
-  <div class="relative" ref="autocompleteRef">
-    <div class="relative">
-      <input
-        :id="id"
-        type="text"
-        :value="displayValue"
-        :disabled="disabled"
-        :required="required"
-        @input="handleInput"
-        @focus="handleFocus"
-        @blur="handleBlur"
-        @keydown="handleKeydown"
-        class="autocomplete-input"
-        :class="{
-          'error': hasError,
-          'disabled': disabled,
-          'filled': displayValue || isFocused,
-          'dropdown-open': isDropdownOpen
-        }"
-        autocomplete="off"
-      />
-
-      <label
-        :for="id"
-        class="autocomplete-label"
-        :class="{
-          'error': hasError,
-          'disabled': disabled,
-          'active': displayValue || isFocused,
-        }"
-      >
-        {{ label }}
-        <span v-if="required" class="text-red-500 ml-1">*</span>
-      </label>
-
-      <!-- Clear button -->
-      <button
-        v-if="selectedValue && !disabled"
-        type="button"
-        @mousedown.prevent="clearSelection"
-        class="clear-button"
-        tabindex="-1"
-      >
-        <svg class="clear-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
-      <!-- Dropdown arrow -->
-      <button
-        type="button"
-        @mousedown.prevent="toggleDropdown"
-        class="dropdown-arrow"
-        :class="{
-          'open': isDropdownOpen,
-          'with-clear': selectedValue && !disabled
-        }"
-        tabindex="-1"
-      >
-        <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Dropdown Options -->
-    <div
-      v-show="isDropdownOpen && filteredOptions.length > 0"
-      class="dropdown-menu"
-    >
-      <div class="dropdown-content">
-        <div
-          v-for="(option, index) in filteredOptions"
-          :key="getOptionValue(option)"
-          @mousedown.prevent="selectOption(option)"
-          @mouseenter="highlightedIndex = index"
-          class="dropdown-option"
-          :class="{
-            'highlighted': index === highlightedIndex,
-            'selected': getOptionValue(option) === selectedValue
-          }"
-        >
-          {{ getOptionLabel(option) }}
-        </div>
-      </div>
-    </div>
-
-    <!-- No results -->
-    <div
-      v-show="isDropdownOpen && filteredOptions.length === 0 && searchQuery"
-      class="dropdown-menu"
-    >
-      <div class="dropdown-content">
-        <div class="dropdown-option no-results">
-          No results found
-        </div>
-      </div>
-    </div>
-
-    <!-- Error message -->
-    <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600">
-      {{ errorMessage }}
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 
@@ -153,7 +46,7 @@ const props = defineProps({
   filterOnFocus: {
     type: Boolean,
     default: true,
-  }
+  },
 })
 
 // Emits
@@ -166,25 +59,23 @@ const isDropdownOpen = ref(false)
 const searchQuery = ref('')
 const highlightedIndex = ref(-1)
 const selectedValue = ref(props.modelValue)
+const dropdownPosition = ref('bottom') // NEW: 'bottom' or 'top'
 
 // Computed
 const hasError = computed(() => !!props.errorMessage)
 
 const displayValue = computed(() => {
-  // Jika user sedang mengetik dan ada searchQuery
   if (isFocused.value && searchQuery.value !== '') {
     return searchQuery.value
   }
 
-  // Jika ada selectedValue, tampilkan label yang sesuai
   if (selectedValue.value !== '' && selectedValue.value != null) {
-    const selectedOption = props.options.find(option =>
-      getOptionValue(option) === selectedValue.value
+    const selectedOption = props.options.find(
+      (option) => getOptionValue(option) === selectedValue.value,
     )
     return selectedOption ? getOptionLabel(selectedOption) : selectedValue.value
   }
 
-  // Default return empty
   return ''
 })
 
@@ -193,10 +84,36 @@ const filteredOptions = computed(() => {
     return props.options
   }
 
-  return props.options.filter(option => {
+  return props.options.filter((option) => {
     const label = getOptionLabel(option)
     return label.toLowerCase().includes(searchQuery.value.toLowerCase().trim())
   })
+})
+
+// --- NEW: Method to calculate dropdown position ---
+const calculateDropdownPosition = () => {
+  if (!autocompleteRef.value) return
+
+  const inputRect = autocompleteRef.value.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - inputRect.bottom
+  const spaceAbove = inputRect.top
+  const dropdownHeight = 200 // Corresponds to max-height in CSS
+
+  // If not enough space below, and more space above, open upwards
+  if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+    dropdownPosition.value = 'top'
+  } else {
+    dropdownPosition.value = 'bottom'
+  }
+}
+
+// --- MODIFIED: Watch for dropdown state to calculate position ---
+watch(isDropdownOpen, (isOpen) => {
+  if (isOpen) {
+    nextTick(() => {
+      calculateDropdownPosition()
+    })
+  }
 })
 
 // Methods
@@ -218,14 +135,12 @@ const handleInput = (event) => {
   const inputValue = event.target.value
   searchQuery.value = inputValue
 
-  // Reset selected value jika user mulai mengetik yang berbeda
   if (inputValue === '') {
     selectedValue.value = ''
     emit('update:modelValue', '')
   } else if (selectedValue.value) {
-    // Cek apakah input value berbeda dengan current selection
-    const currentSelectedOption = props.options.find(option =>
-      getOptionValue(option) === selectedValue.value
+    const currentSelectedOption = props.options.find(
+      (option) => getOptionValue(option) === selectedValue.value,
     )
     if (currentSelectedOption && getOptionLabel(currentSelectedOption) !== inputValue) {
       selectedValue.value = ''
@@ -233,7 +148,6 @@ const handleInput = (event) => {
     }
   }
 
-  // Buka dropdown
   if (!isDropdownOpen.value) {
     isDropdownOpen.value = true
   }
@@ -242,8 +156,6 @@ const handleInput = (event) => {
 
 const handleFocus = (event) => {
   isFocused.value = true
-
-  // Clear search query untuk memungkinkan pencarian baru
   searchQuery.value = ''
 
   if (props.filterOnFocus) {
@@ -253,16 +165,14 @@ const handleFocus = (event) => {
 }
 
 const handleBlur = (event) => {
-  // Gunakan setTimeout untuk memberikan waktu bagi click event
   setTimeout(() => {
-    if (!isDropdownOpen.value) return // Jika sudah ditutup, skip
-
-    isFocused.value = false
-    isDropdownOpen.value = false
-    searchQuery.value = ''
-    highlightedIndex.value = -1
-
-    emit('blur', event)
+    if (!autocompleteRef.value?.contains(document.activeElement)) {
+      isFocused.value = false
+      isDropdownOpen.value = false
+      searchQuery.value = ''
+      highlightedIndex.value = -1
+      emit('blur', event)
+    }
   }, 150)
 }
 
@@ -282,7 +192,7 @@ const handleKeydown = (event) => {
       if (highlightedIndex.value < filteredOptions.value.length - 1) {
         highlightedIndex.value++
       } else {
-        highlightedIndex.value = 0 // Loop ke awal
+        highlightedIndex.value = 0
       }
       break
     case 'ArrowUp':
@@ -290,7 +200,7 @@ const handleKeydown = (event) => {
       if (highlightedIndex.value > 0) {
         highlightedIndex.value--
       } else {
-        highlightedIndex.value = filteredOptions.value.length - 1 // Loop ke akhir
+        highlightedIndex.value = filteredOptions.value.length - 1
       }
       break
     case 'Enter':
@@ -318,10 +228,11 @@ const selectOption = (option) => {
   emit('update:modelValue', value)
   emit('select', option)
 
-  // Focus kembali ke input setelah selection
   nextTick(() => {
     const input = autocompleteRef.value?.querySelector('input')
     input?.focus()
+    // Manually trigger blur logic after selection if needed
+    handleBlur()
   })
 }
 
@@ -330,7 +241,6 @@ const clearSelection = () => {
   searchQuery.value = ''
   emit('update:modelValue', '')
 
-  // Focus ke input setelah clear
   nextTick(() => {
     const input = autocompleteRef.value?.querySelector('input')
     input?.focus()
@@ -350,7 +260,6 @@ const toggleDropdown = () => {
   }
 }
 
-// Handle click outside
 const handleClickOutside = (event) => {
   if (autocompleteRef.value && !autocompleteRef.value.contains(event.target)) {
     isDropdownOpen.value = false
@@ -360,19 +269,139 @@ const handleClickOutside = (event) => {
   }
 }
 
-// Watch for external modelValue changes
-watch(() => props.modelValue, (newValue) => {
-  selectedValue.value = newValue
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    selectedValue.value = newValue
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('mousedown', handleClickOutside)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('mousedown', handleClickOutside)
 })
 </script>
+
+<template>
+  <div class="relative" ref="autocompleteRef">
+    <div class="relative">
+      <input
+        :id="id"
+        type="text"
+        :value="displayValue"
+        :disabled="disabled"
+        :required="required"
+        @input="handleInput"
+        @focus="handleFocus"
+        @blur="handleBlur"
+        @keydown="handleKeydown"
+        class="autocomplete-input"
+        :class="{
+          error: hasError,
+          disabled: disabled,
+          filled: displayValue || isFocused,
+          'dropdown-open': isDropdownOpen,
+        }"
+        autocomplete="off"
+      />
+
+      <label
+        :for="id"
+        class="autocomplete-label"
+        :class="{
+          error: hasError,
+          disabled: disabled,
+          active: displayValue || isFocused,
+        }"
+      >
+        {{ label }}
+        <span v-if="required" class="text-red-500 ml-1">*</span>
+      </label>
+
+      <!-- Clear button -->
+      <button
+        v-if="selectedValue && !disabled"
+        type="button"
+        @mousedown.prevent="clearSelection"
+        class="clear-button"
+        tabindex="-1"
+      >
+        <svg class="clear-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+
+      <!-- Dropdown arrow -->
+      <button
+        type="button"
+        @mousedown.prevent="toggleDropdown"
+        class="dropdown-arrow"
+        :class="{
+          open: isDropdownOpen,
+          'with-clear': selectedValue && !disabled,
+        }"
+        tabindex="-1"
+      >
+        <svg class="arrow-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Dropdown Options -->
+    <div
+      v-show="isDropdownOpen && filteredOptions.length > 0"
+      class="dropdown-menu"
+      :class="{ 'is-top': dropdownPosition === 'top' }"
+    >
+      <div class="dropdown-content">
+        <div
+          v-for="(option, index) in filteredOptions"
+          :key="getOptionValue(option)"
+          @mousedown.prevent="selectOption(option)"
+          @mouseenter="highlightedIndex = index"
+          class="dropdown-option"
+          :class="{
+            highlighted: index === highlightedIndex,
+            selected: getOptionValue(option) === selectedValue,
+          }"
+        >
+          {{ getOptionLabel(option) }}
+        </div>
+      </div>
+    </div>
+
+    <!-- No results -->
+    <div
+      v-show="isDropdownOpen && filteredOptions.length === 0 && searchQuery"
+      class="dropdown-menu"
+      :class="{ 'is-top': dropdownPosition === 'top' }"
+    >
+      <div class="dropdown-content">
+        <div class="dropdown-option no-results">No results found</div>
+      </div>
+    </div>
+
+    <!-- Error message -->
+    <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600">
+      {{ errorMessage }}
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .autocomplete-input {
@@ -511,6 +540,14 @@ onUnmounted(() => {
   right: 0;
   z-index: 50;
   margin-top: 2px;
+}
+
+/* NEW: Style for dropdown opening upwards */
+.dropdown-menu.is-top {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 2px;
 }
 
 .dropdown-content {

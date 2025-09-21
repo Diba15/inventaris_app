@@ -164,12 +164,15 @@ onMounted(async () => {
   <div class="flex flex-col m-4 gap-4">
     <div class="bg-white rounded-xl shadow">
       <div
-        class="bg-base text-secondary p-4 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
+        class="bg-base text-secondary p-6 rounded-t-xl flex justify-between items-center flex-col md:flex-row"
       >
-        <h1 class="text-xl font-bold self-start md:self-center">Add User</h1>
+        <div>
+          <h1 class="text-2xl font-bold">Add User</h1>
+          <p class="text-[var(--color-secondary)] opacity-80 mt-1">Add a new user to the system</p>
+        </div>
         <button
           @click="addUsers"
-          class="bg-sub text-white px-4 py-2 rounded-lg hover:bg-sub/90 transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
+          class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition-colors mt-4 md:mt-0 self-end md:self-center cursor-pointer"
         >
           Add User
         </button>

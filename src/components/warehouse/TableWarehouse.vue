@@ -52,7 +52,7 @@ function getWarehouseAttribute(warehouse, attribute) {
 }
 
 function deleteWarehouse(warehouse) {
-  const id = warehouse.id
+  const id = warehouse.documentId
   const code = getWarehouseAttribute(warehouse, 'code')
   emit('deleteWarehouse', id, code)
 }
@@ -168,7 +168,7 @@ const totalPages = computed(() => Math.ceil(sortedAllWarehouses.value.length / l
 </script>
 
 <template>
-  <div class="rounded-xl max-h-fit w-full max-w-xl">
+  <div class="rounded-xl max-h-fit w-full">
     <div class="flex flex-col gap-4">
       <!-- Enhanced Table -->
       <div class="warehouse-grid overflow-x-auto shadow-lg rounded-xl w-full">

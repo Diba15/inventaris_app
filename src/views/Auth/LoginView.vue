@@ -153,7 +153,7 @@ const handleLogin = async () => {
 
   <div class="absolute flex flex-col gap-2 text-gray-400 top-5 left-5">
     <h1 class="text-2xl font-bold ">Guest Account</h1>
-    <p>Email: guest@email.com</p>
-    <p>Password: guest123</p>
+    <p>Email: admin@email.com</p>
+    <p>Password: admin123</p>
   </div>
 </template>
